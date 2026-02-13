@@ -17,6 +17,9 @@ export default function CreditsDialog({ onClose }) {
                         {' & '}
                         <a href="https://aistudio.google.com" target="_blank" rel="noopener noreferrer"
                             className="text-blue-400 underline hover:text-blue-300 transition-colors">Gemini</a>
+                        {' & '}
+                        <a href="https://claude.ai" target="_blank" rel="noopener noreferrer"
+                            className="text-purple-400 underline hover:text-purple-300 transition-colors">Claude Opus</a>
                     </p>
                 </div>
                 <p className="text-xs text-gray-500 mb-5">v2.0.0 (Web)</p>
