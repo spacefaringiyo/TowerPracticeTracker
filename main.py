@@ -1,4 +1,23 @@
 import flet as ft
+# --- COMPATIBILITY FIX START ---
+# The new Flet deleted 'UserControl', so we recreate it manually here.
+if not hasattr(ft, "UserControl"):
+    class UserControl(ft.Column):
+        def __init__(self):
+            super().__init__()
+            self.expand = True # Ensure it takes up space
+            # Trigger the old 'build()' method and add it to this Column
+            self.controls = [self.build()]
+            
+        def build(self):
+            return ft.Container() 
+            
+    # Inject our fake class back into Flet
+    ft.UserControl = UserControl
+# --- COMPATIBILITY FIX END ---
+
+
+
 import os
 import base64
 import json
