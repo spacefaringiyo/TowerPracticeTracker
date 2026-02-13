@@ -1,40 +1,4 @@
 import flet as ft
-
-# --- THE ULTIMATE COMPATIBILITY SHIM ---
-# 1. Fix UserControl
-if not hasattr(ft, "UserControl"):
-    class UserControl(ft.Column):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            self._built = False
-        def before_update(self):
-            if not self._built:
-                self.controls = [self.build()]
-                self._built = True
-            super().before_update()
-        def build(self): return ft.Container()
-    ft.UserControl = UserControl
-
-# 2. Fix lowercase to Uppercase changes (colors, icons, alignment, etc.)
-# This automatically creates ft.colors from ft.Colors, etc.
-for old_name, new_name in [
-    ("colors", "Colors"), ("icons", "Icons"), ("alignment", "alignment"), 
-    ("padding", "Padding"), ("margin", "Margin"), ("border_radius", "BorderRadius"),
-    ("font_weight", "FontWeight"), ("app_bar", "AppBar"), ("navigation_bar", "NavigationBar")
-]:
-    if not hasattr(ft, old_name) and hasattr(ft, new_name):
-        setattr(ft, old_name, getattr(ft, new_name))
-
-# 3. Specifically fix the most common ones that the loop might miss
-ft.colors = ft.Colors
-ft.icons = ft.Icons
-ft.border_radius = ft.BorderRadius
-ft.font_weight = ft.FontWeight
-ft.alignment = ft.alignment # This one is tricky in newer versions
-# --- END SHIM ---
-
-
-
 import os
 import base64
 import json
