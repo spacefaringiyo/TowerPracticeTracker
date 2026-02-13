@@ -18,7 +18,7 @@ if not hasattr(ft, "UserControl"):
         def build(self):
             return ft.Container()
             
-    ft.UserControl = User
+    ft.UserControl = UserControl
 
 
 
