@@ -6,6 +6,7 @@ const COMMON_LOG_PATHS = [
     String.raw`%APPDATA%\PrismLauncher\instances\MCSRRanked-1.16.1\logs`,
     String.raw`%APPDATA%\PrismLauncher\instances\Ranked\logs`,
     String.raw`%APPDATA%\MultiMC\instances\MCSRRanked-1.16.1\logs`,
+    String.raw`%USERPROFILE%\Downloads\mmc-develop-win32\MultiMC\instances\MCSRRanked-Windows-1.16.1-All.minecraft\logs`,
 ];
 
 export default function ImportDialog({ onClose }) {
