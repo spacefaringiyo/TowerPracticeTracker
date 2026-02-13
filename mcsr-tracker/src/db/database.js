@@ -6,7 +6,8 @@ let db = null;
 
 export async function initDatabase() {
     // Manually fetch the WASM file to handle 404s/HTML errors explicitly
-    const wasmUrl = '/sql-wasm.wasm';
+    // Use relative path to support subdirectory deployment (e.g. GitHub Pages)
+    const wasmUrl = './sql-wasm.wasm';
     const response = await fetch(wasmUrl);
 
     if (!response.ok) {
