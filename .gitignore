@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+dist/
+build/
+uploads/
+.env
+*.spec
+DATABASE_HISTORY.md
+exampleofalog.txt
+pack_project.py
