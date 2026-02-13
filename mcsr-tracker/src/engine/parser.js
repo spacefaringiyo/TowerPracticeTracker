@@ -88,7 +88,7 @@ class RunParser {
         const pearlMatch = patterns.pearl.exec(line);
         if (pearlMatch) {
             const distance = parseFloat(pearlMatch[1]);
-            if (!isNaN(distance) && !this.isAttempting && distance > 10.0) {
+            if (!isNaN(distance) && !this.isAttempting && distance > 6.0) {
                 // console.log('[Parser] Attempt Start (Pearl):', distance);
                 this.isAttempting = true;
                 this.attemptStartTime = currentDt;
