@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { getHeightStats, getRunsByHeight, getPbsMap } from '../db/queries';
 import RunChart from './shared/RunChart';
 import FilterChips from './shared/FilterChips';
+import StatCard from './shared/StatCard';
 
 const C = {
     id: 0, timestamp: 1, time_sec: 2, explosives: 3, total_explosives: 4,
@@ -33,11 +34,12 @@ export default function HeightAnalytics({ refreshKey }) {
 
     const sortedStats = useMemo(() => {
         const stats = [...heightStats];
+        // 0:height, 1:count, 2:bestTime, 3:avgTime, 4:bestExpl, 5:avgExpl
         const dir = listSortDir === 'asc' ? 1 : -1;
         if (listSort === 'height') stats.sort((a, b) => (a[0] - b[0]) * dir);
         else if (listSort === 'count') stats.sort((a, b) => (a[1] - b[1]) * dir);
         else if (listSort === 'time') stats.sort((a, b) => (a[2] - b[2]) * dir);
-        else if (listSort === 'expl') stats.sort((a, b) => (a[3] - b[3]) * dir);
+        else if (listSort === 'expl') stats.sort((a, b) => (a[4] - b[4]) * dir);
         return stats;
     }, [heightStats, listSort, listSortDir]);
 
@@ -173,16 +175,35 @@ export default function HeightAnalytics({ refreshKey }) {
                 </div>
                 <div className="flex-1 overflow-auto min-h-0">
                     <div className="space-y-1">
-                        {sortedStats.map(([height, count, bestTime, bestExpl]) => (
+                        {sortedStats.map(([height, count, bestTime, avgTime, bestExpl, avgExpl]) => (
                             <button key={height}
                                 onClick={() => showDetail(height)}
                                 className="w-full bg-gray-800/40 hover:bg-gray-800 rounded-lg p-3 text-left transition-colors border border-gray-700/30 hover:border-gray-600">
-                                <div className="flex items-center gap-3">
-                                    <span className="text-base font-bold text-white min-w-[40px]">Y{height}</span>
-                                    <div className="flex gap-3 text-xs text-gray-400 flex-1">
-                                        <span>{count} runs</span>
-                                        <span className="text-cyan-400">{bestTime.toFixed(2)}s</span>
-                                        <span className="text-green-400">{bestExpl} expl</span>
+                                <div className="flex items-center">
+                                    <span className="text-base font-bold text-white w-16">Y{height}</span>
+
+                                    <div className="flex-1 grid grid-cols-5 gap-2 items-center text-xs text-gray-400">
+                                        <span className="col-span-1">{count} runs</span>
+
+                                        {/* Explosives */}
+                                        <div className="col-span-1 flex flex-col items-start pl-2 border-l border-gray-700/50">
+                                            <span className="text-[10px] text-gray-500 uppercase">Best</span>
+                                            <span className="text-cyan-400 font-bold text-sm">{bestExpl}</span>
+                                        </div>
+                                        <div className="col-span-1 flex flex-col items-start">
+                                            <span className="text-[10px] text-gray-500 uppercase">Avg</span>
+                                            <span className="text-blue-200 font-bold text-sm">{avgExpl.toFixed(1)}</span>
+                                        </div>
+
+                                        {/* Time */}
+                                        <div className="col-span-1 flex flex-col items-start pl-2 border-l border-gray-700/50">
+                                            <span className="text-[10px] text-gray-500 uppercase">Best</span>
+                                            <span className="text-amber-400 font-bold text-sm">{bestTime.toFixed(1)}s</span>
+                                        </div>
+                                        <div className="col-span-1 flex flex-col items-start">
+                                            <span className="text-[10px] text-gray-500 uppercase">Avg</span>
+                                            <span className="text-yellow-200 font-bold text-sm">{avgTime.toFixed(1)}s</span>
+                                        </div>
                                     </div>
                                 </div>
                             </button>
@@ -197,13 +218,38 @@ export default function HeightAnalytics({ refreshKey }) {
     }
 
     // ======== DETAIL VIEW ========
+    const currentIndex = sortedStats.findIndex(s => s[0] === currentHeight);
+    const prevHeight = currentIndex > 0 ? sortedStats[currentIndex - 1][0] : null;
+    const nextHeight = currentIndex < sortedStats.length - 1 ? sortedStats[currentIndex + 1][0] : null;
+
+    const successes = filteredRuns;
+    const bestTime = successes.length > 0 ? Math.min(...successes.map(r => r[C.time_sec])) : 0;
+    const avgTime = successes.length > 0 ? successes.reduce((s, r) => s + r[C.time_sec], 0) / successes.length : 0;
+    const bestExpl = successes.length > 0 ? Math.min(...successes.map(r => r[C.total_explosives])) : 0;
+    const avgExpl = successes.length > 0 ? successes.reduce((s, r) => s + r[C.total_explosives], 0) / successes.length : 0;
+
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center gap-2 mb-2">
-                <button onClick={() => setViewMode('list')} className="text-gray-400 hover:text-white text-sm">← Back</button>
+            <div className="flex items-center gap-2 mb-3">
+                <button onClick={() => setViewMode('list')} className="text-gray-400 hover:text-white text-sm font-medium mr-2">← Back</button>
+
+                <button onClick={() => prevHeight !== null && showDetail(prevHeight)} disabled={prevHeight === null}
+                    className="text-gray-400 hover:text-white disabled:text-gray-700 text-lg px-2">◀</button>
+
+                <button onClick={() => nextHeight !== null && showDetail(nextHeight)} disabled={nextHeight === null}
+                    className="text-gray-400 hover:text-white disabled:text-gray-700 text-lg px-2">▶</button>
+
                 <h2 className="text-lg font-bold">Height Y{currentHeight}</h2>
-                <span className="text-xs text-gray-400">{filteredRuns.length} runs</span>
+            </div>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-6 gap-2 mb-3">
+                <StatCard label="Total Runs" value={filteredRuns.length} />
+                <StatCard label="Best Expl" value={bestExpl > 0 ? bestExpl : '-'} color="text-cyan-400" />
+                <StatCard label="Avg Expl" value={avgExpl > 0 ? avgExpl.toFixed(1) : '-'} color="text-blue-300" />
+                <StatCard label="Best Time" value={bestTime > 0 ? `${bestTime.toFixed(2)}s` : '-'} color="text-yellow-400" />
+                <StatCard label="Avg Time" value={avgTime > 0 ? `${avgTime.toFixed(1)}s` : '-'} color="text-yellow-200" />
             </div>
 
             {/* Filters */}
@@ -216,20 +262,20 @@ export default function HeightAnalytics({ refreshKey }) {
 
             {/* Controls */}
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <div className="flex bg-gray-800 rounded-lg overflow-hidden text-xs">
+                <div className="flex bg-gray-800 rounded-lg overflow-hidden text-sm">
                     <button onClick={() => setChartMode('expl')}
                         className={`px-3 py-1 ${chartMode === 'expl' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Expl</button>
                     <button onClick={() => setChartMode('time')}
                         className={`px-3 py-1 ${chartMode === 'time' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Time</button>
                 </div>
                 <button onClick={() => setShowTrend(v => !v)}
-                    className={`text-xs px-2 py-1 rounded ${showTrend ? 'text-cyan-400' : 'text-gray-400'}`}>📈</button>
+                    className={`text-sm px-2 py-1 rounded ${showTrend ? 'text-cyan-400' : 'text-gray-400'}`}>📈</button>
                 <input type="number" min="1" value={groupSize}
                     onChange={e => setGroupSize(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-center" />
+                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-center" />
                 <div className="flex-1" />
                 <select value={detailSort} onChange={e => setDetailSort(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs">
+                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                     <option value="fastest">Fastest</option>
@@ -243,15 +289,15 @@ export default function HeightAnalytics({ refreshKey }) {
 
             {/* Run List */}
             <div className="flex-1 overflow-auto min-h-0 mt-2">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-gray-900">
                         <tr className="text-gray-400 text-left">
-                            <th className="py-1.5 px-1">Expl</th>
-                            <th className="py-1.5 px-1">Time</th>
-                            <th className="py-1.5 px-1">Bed</th>
-                            <th className="py-1.5 px-1">Tower</th>
-                            <th className="py-1.5 px-1">Type</th>
-                            <th className="py-1.5 px-1">Date</th>
+                            <th className="py-2 px-2">Expl</th>
+                            <th className="py-2 px-2">Time</th>
+                            <th className="py-2 px-2">Bed</th>
+                            <th className="py-2 px-2">Tower</th>
+                            <th className="py-2 px-2">Type</th>
+                            <th className="py-2 px-2">Date</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -259,15 +305,15 @@ export default function HeightAnalytics({ refreshKey }) {
                             const isPB = pbMap[`${run[C.tower]}_${run[C.type]}`] === run[C.total_explosives];
                             return (
                                 <tr key={run[C.id] || i}
-                                    className={`${isPB ? 'text-yellow-400' : 'text-gray-200'} border-b border-gray-800/30`}>
-                                    <td className="py-1.5 px-1 font-semibold">{run[C.explosives]}</td>
-                                    <td className="py-1.5 px-1">{(run[C.time_sec] || 0).toFixed(2)}s</td>
-                                    <td className={`py-1.5 px-1 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>
+                                    className={`${isPB ? 'text-yellow-400' : 'text-gray-200'} border-b border-gray-800/30 hover:bg-gray-800/20`}>
+                                    <td className="py-2 px-2 font-semibold">{run[C.explosives]}</td>
+                                    <td className="py-2 px-2">{(run[C.time_sec] || 0).toFixed(2)}s</td>
+                                    <td className={`py-2 px-2 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>
                                         {run[C.bed_time] ? `${run[C.bed_time].toFixed(2)}s` : '-'}
                                     </td>
-                                    <td className="py-1.5 px-1">{run[C.tower]}</td>
-                                    <td className="py-1.5 px-1">{run[C.type]}</td>
-                                    <td className="py-1.5 px-1 text-gray-500">{formatDate(run[C.timestamp])}</td>
+                                    <td className="py-2 px-2">{run[C.tower]}</td>
+                                    <td className="py-2 px-2">{run[C.type]}</td>
+                                    <td className="py-2 px-2 text-gray-500">{formatDate(run[C.timestamp])}</td>
                                 </tr>
                             );
                         })}

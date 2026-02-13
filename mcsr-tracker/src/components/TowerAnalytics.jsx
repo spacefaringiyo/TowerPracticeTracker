@@ -3,6 +3,7 @@ import { getTowerStats, getRunsByTower, getPbsMap } from '../db/queries';
 import { loadConfig, saveConfig } from '../utils/config';
 import RunChart from './shared/RunChart';
 import FilterChips from './shared/FilterChips';
+import StatCard from './shared/StatCard';
 
 const C = {
     id: 0, timestamp: 1, time_sec: 2, explosives: 3, total_explosives: 4,
@@ -161,20 +162,35 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
     const totalRuns = allRuns.filter(r => activeTypes.has(r[C.type]) || !r[C.is_success]).length;
     const bestTime = successes.length > 0 ? Math.min(...successes.map(r => r[C.time_sec])) : 0;
     const bestExpl = successes.length > 0 ? Math.min(...successes.map(r => r[C.total_explosives])) : 0;
+    const avgExpl = successes.length > 0 ? successes.reduce((s, r) => s + r[C.total_explosives], 0) / successes.length : 0;
+
+    // Navigation Logic
+    const currentIndex = sortedStats.findIndex(s => s[0] === currentTower);
+    const prevTower = currentIndex > 0 ? sortedStats[currentIndex - 1][0] : null;
+    const nextTower = currentIndex < sortedStats.length - 1 ? sortedStats[currentIndex + 1][0] : null;
 
     return (
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <button onClick={() => setViewMode('grid')}
-                    className="text-gray-400 hover:text-white transition-colors text-sm">← Back</button>
-                <h2 className="text-lg font-bold">{currentTower}</h2>
-                <div className="flex-1" />
-                <div className="flex items-center gap-1.5 text-xs">
-                    <span className="text-gray-400">{successes.length} runs</span>
-                    {bestTime > 0 && <span className="text-cyan-400">Best: {bestTime.toFixed(2)}s</span>}
-                    {bestExpl > 0 && <span className="text-green-400">{bestExpl} expl</span>}
-                </div>
+                    className="text-gray-400 hover:text-white transition-colors text-sm font-medium mr-2">← Back</button>
+
+                <button onClick={() => prevTower && showDetail(prevTower)} disabled={!prevTower}
+                    className="text-gray-400 hover:text-white disabled:text-gray-700 text-lg px-2">◀</button>
+
+                <button onClick={() => nextTower && showDetail(nextTower)} disabled={!nextTower}
+                    className="text-gray-400 hover:text-white disabled:text-gray-700 text-lg px-2">▶</button>
+
+                <h2 className="text-xl font-bold">{currentTower}</h2>
+            </div>
+
+            {/* Stat Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-3">
+                <StatCard label="Total Runs" value={successes.length} />
+                <StatCard label="Best Expl" value={bestExpl > 0 ? bestExpl : '-'} color="text-cyan-400" />
+                <StatCard label="Avg Expl" value={avgExpl > 0 ? avgExpl.toFixed(1) : '-'} color="text-blue-300" />
+                <StatCard label="Best Time" value={bestTime > 0 ? `${bestTime.toFixed(2)}s` : '-'} color="text-yellow-400" />
             </div>
 
             {/* Filters */}
@@ -182,20 +198,20 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
 
             {/* Controls */}
             <div className="flex items-center gap-2 my-2 flex-wrap">
-                <div className="flex bg-gray-800 rounded-lg overflow-hidden text-xs">
+                <div className="flex bg-gray-800 rounded-lg overflow-hidden text-sm">
                     <button onClick={() => setChartMode('expl')}
                         className={`px-3 py-1 ${chartMode === 'expl' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Expl</button>
                     <button onClick={() => setChartMode('time')}
                         className={`px-3 py-1 ${chartMode === 'time' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Time</button>
                 </div>
                 <button onClick={() => setShowTrend(v => !v)}
-                    className={`text-xs px-2 py-1 rounded ${showTrend ? 'text-cyan-400' : 'text-gray-400'}`}>📈</button>
+                    className={`text-sm px-2 py-1 rounded ${showTrend ? 'text-cyan-400' : 'text-gray-400'}`}>📈</button>
                 <input type="number" min="1" value={groupSize}
                     onChange={e => setGroupSize(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-center" title="Group" />
+                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-center" title="Group" />
                 <div className="flex-1" />
                 <select value={detailSort} onChange={e => setDetailSort(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs">
+                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                     <option value="fastest">Fastest</option>
@@ -209,15 +225,15 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
 
             {/* Run List */}
             <div className="flex-1 overflow-auto min-h-0 mt-2">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-gray-900">
                         <tr className="text-gray-400 text-left">
-                            <th className="py-1.5 px-1">Expl</th>
-                            <th className="py-1.5 px-1">Time</th>
-                            <th className="py-1.5 px-1">Bed</th>
-                            <th className="py-1.5 px-1">Type</th>
-                            <th className="py-1.5 px-1">Y</th>
-                            <th className="py-1.5 px-1">Date</th>
+                            <th className="py-2 px-2">Expl</th>
+                            <th className="py-2 px-2">Time</th>
+                            <th className="py-2 px-2">Bed</th>
+                            <th className="py-2 px-2">Type</th>
+                            <th className="py-2 px-2">Y</th>
+                            <th className="py-2 px-2">Date</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -225,15 +241,15 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
                             const isPB = pbMap[`${run[C.tower]}_${run[C.type]}`] === run[C.total_explosives];
                             return (
                                 <tr key={run[C.id] || i}
-                                    className={`${isPB ? 'text-yellow-400' : 'text-gray-200'} border-b border-gray-800/30`}>
-                                    <td className="py-1.5 px-1 font-semibold">{run[C.explosives]}</td>
-                                    <td className="py-1.5 px-1">{(run[C.time_sec] || 0).toFixed(2)}s</td>
-                                    <td className={`py-1.5 px-1 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>
+                                    className={`${isPB ? 'text-yellow-400' : 'text-gray-200'} border-b border-gray-800/30 hover:bg-gray-800/20`}>
+                                    <td className="py-2 px-2 font-semibold">{run[C.explosives]}</td>
+                                    <td className="py-2 px-2">{(run[C.time_sec] || 0).toFixed(2)}s</td>
+                                    <td className={`py-2 px-2 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>
                                         {run[C.bed_time] ? `${run[C.bed_time].toFixed(2)}s` : '-'}
                                     </td>
-                                    <td className="py-1.5 px-1">{run[C.type]}</td>
-                                    <td className="py-1.5 px-1">{run[C.height] > 0 ? run[C.height] : '-'}</td>
-                                    <td className="py-1.5 px-1 text-gray-500">{formatDate(run[C.timestamp])}</td>
+                                    <td className="py-2 px-2">{run[C.type]}</td>
+                                    <td className="py-2 px-2">{run[C.height] > 0 ? run[C.height] : '-'}</td>
+                                    <td className="py-2 px-2 text-gray-500">{formatDate(run[C.timestamp])}</td>
                                 </tr>
                             );
                         })}

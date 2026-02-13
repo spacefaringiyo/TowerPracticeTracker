@@ -15,14 +15,7 @@ function formatDate(ts) {
     } catch { return ts || ''; }
 }
 
-function StatCard({ label, value, color = 'text-white' }) {
-    return (
-        <div className="bg-gray-800/60 rounded-lg px-3 py-2 text-center">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">{label}</p>
-            <p className={`text-sm font-bold ${color}`}>{value}</p>
-        </div>
-    );
-}
+import StatCard from './shared/StatCard';
 
 export default function SessionAnalytics({ refreshKey }) {
     const [viewMode, setViewMode] = useState('list');
@@ -81,13 +74,20 @@ export default function SessionAnalytics({ refreshKey }) {
     const stats = useMemo(() => {
         const successes = sessionRuns.filter(r => r[C.is_success]);
         const fails = sessionRuns.filter(r => !r[C.is_success]);
+        const deaths = fails.filter(r => {
+            const reason = r[C.fail_reason];
+            return reason !== 'World Load' && reason !== 'Reset';
+        }).length;
+
         return {
             total: sessionRuns.length,
             successes: successes.length,
             fails: fails.length,
+            deaths,
             bestTime: successes.length > 0 ? Math.min(...successes.map(r => r[C.time_sec])) : 0,
             avgTime: successes.length > 0 ? successes.reduce((s, r) => s + r[C.time_sec], 0) / successes.length : 0,
             bestExpl: successes.length > 0 ? Math.min(...successes.map(r => r[C.total_explosives])) : 0,
+            avgExpl: successes.length > 0 ? successes.reduce((s, r) => s + r[C.total_explosives], 0) / successes.length : 0,
         };
     }, [sessionRuns]);
 
@@ -136,11 +136,16 @@ export default function SessionAnalytics({ refreshKey }) {
         <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center gap-2 mb-2">
-                <button onClick={() => setViewMode('list')} className="text-gray-400 hover:text-white text-sm">← Back</button>
+                <button onClick={() => setViewMode('list')} className="text-gray-400 hover:text-white text-sm font-medium mr-2">← Back</button>
+
                 <button onClick={() => currentIndex > 0 && loadDetail(currentIndex - 1)}
-                    disabled={currentIndex <= 0} className="text-gray-400 hover:text-white disabled:text-gray-700 text-xs">◀</button>
+                    disabled={currentIndex <= 0}
+                    className="text-gray-400 hover:text-white disabled:text-gray-700 text-lg px-2">◀</button>
+
                 <button onClick={() => currentIndex < filteredList.length - 1 && loadDetail(currentIndex + 1)}
-                    disabled={currentIndex >= filteredList.length - 1} className="text-gray-400 hover:text-white disabled:text-gray-700 text-xs">▶</button>
+                    disabled={currentIndex >= filteredList.length - 1}
+                    className="text-gray-400 hover:text-white disabled:text-gray-700 text-lg px-2">▶</button>
+
                 <h2 className="text-sm font-bold truncate flex-1">{currentSession?.id}</h2>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-300">
                     {currentSession?.type === 'split' ? '✂️ Split' : '📄 Log'}
@@ -148,38 +153,44 @@ export default function SessionAnalytics({ refreshKey }) {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-3 lg:grid-cols-6 gap-1.5 mb-2">
-                <StatCard label="Total" value={stats.total} />
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-3">
+                <StatCard label="Total Runs" value={stats.total} />
                 <StatCard label="Wins" value={stats.successes} color="text-green-400" />
                 <StatCard label="Fails" value={stats.fails} color="text-red-400" />
-                <StatCard label="Best Time" value={stats.bestTime > 0 ? `${stats.bestTime.toFixed(2)}s` : '-'} color="text-cyan-400" />
-                <StatCard label="Avg Time" value={stats.avgTime > 0 ? `${stats.avgTime.toFixed(1)}s` : '-'} />
-                <StatCard label="Best Expl" value={stats.bestExpl > 0 ? stats.bestExpl : '-'} color="text-yellow-400" />
+                <StatCard label="Deaths" value={stats.deaths} color="text-red-500" />
+
+                {/* Explosives First */}
+                <StatCard label="Best Expl" value={stats.bestExpl > 0 ? stats.bestExpl : '-'} color="text-cyan-400" />
+                <StatCard label="Avg Expl" value={stats.avgExpl > 0 ? stats.avgExpl.toFixed(1) : '-'} color="text-blue-300" />
+
+                {/* Time Second */}
+                <StatCard label="Best Time" value={stats.bestTime > 0 ? `${stats.bestTime.toFixed(2)}s` : '-'} color="text-yellow-400" />
+                <StatCard label="Avg Time" value={stats.avgTime > 0 ? `${stats.avgTime.toFixed(1)}s` : '-'} color="text-yellow-200" />
             </div>
 
             {/* Controls */}
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <div className="flex bg-gray-800 rounded-lg overflow-hidden text-xs">
+                <div className="flex bg-gray-800 rounded-lg overflow-hidden text-sm">
                     <button onClick={() => setChartMode('expl')}
                         className={`px-3 py-1 ${chartMode === 'expl' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Expl</button>
                     <button onClick={() => setChartMode('time')}
                         className={`px-3 py-1 ${chartMode === 'time' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}>Time</button>
                 </div>
                 <button onClick={() => setShowTrend(v => !v)}
-                    className={`text-xs px-2 py-1 rounded ${showTrend ? 'text-cyan-400' : 'text-gray-400'}`}>📈</button>
+                    className={`text-sm px-2 py-1 rounded ${showTrend ? 'text-cyan-400' : 'text-gray-400'}`}>📈</button>
                 <button onClick={() => setHideFails(v => !v)}
-                    className={`text-xs px-2 py-1 rounded ${hideFails ? 'text-red-400' : 'text-gray-400'}`}>
+                    className={`text-sm px-2 py-1 rounded ${hideFails ? 'text-red-400' : 'text-gray-400'}`}>
                     {hideFails ? '🔍' : '👁️'}
                 </button>
                 <button onClick={() => setHideWL(v => !v)}
-                    className={`text-xs px-2 py-1 rounded ${hideWL ? 'text-orange-400' : 'text-gray-400'}`}
+                    className={`text-sm px-2 py-1 rounded ${hideWL ? 'text-orange-400' : 'text-gray-400'}`}
                     title="Hide World Loads">🌍</button>
                 <input type="number" min="1" value={groupSize}
                     onChange={e => setGroupSize(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-center" />
+                    className="w-14 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-center" />
                 <div className="flex-1" />
                 <select value={sortMode} onChange={e => setSortMode(e.target.value)}
-                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs">
+                    className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm">
                     <option value="newest">Newest</option>
                     <option value="oldest">Oldest</option>
                     <option value="fastest">Fastest</option>
@@ -192,16 +203,16 @@ export default function SessionAnalytics({ refreshKey }) {
 
             {/* Run List */}
             <div className="flex-1 overflow-auto min-h-0 mt-2">
-                <table className="w-full text-xs">
+                <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-gray-900">
                         <tr className="text-gray-400 text-left">
-                            <th className="py-1.5 px-1">Expl</th>
-                            <th className="py-1.5 px-1">Time</th>
-                            <th className="py-1.5 px-1">Bed</th>
-                            <th className="py-1.5 px-1">Tower</th>
-                            <th className="py-1.5 px-1">Type</th>
-                            <th className="py-1.5 px-1">Y</th>
-                            <th className="py-1.5 px-1">Date</th>
+                            <th className="py-2 px-2">Expl</th>
+                            <th className="py-2 px-2">Time</th>
+                            <th className="py-2 px-2">Bed</th>
+                            <th className="py-2 px-2">Tower</th>
+                            <th className="py-2 px-2">Type</th>
+                            <th className="py-2 px-2">Y</th>
+                            <th className="py-2 px-2">Date</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -209,16 +220,15 @@ export default function SessionAnalytics({ refreshKey }) {
                             const isSuccess = Boolean(run[C.is_success]);
                             const rowColor = isSuccess ? 'text-gray-200' : 'text-red-400';
                             return (
-                                <tr key={run[C.id] || i} className={`${rowColor} border-b border-gray-800/30`}>
-                                    <td className="py-1.5 px-1 font-semibold">{isSuccess ? run[C.explosives] : (run[C.fail_reason] || 'Fail')}</td>
-                                    <td className="py-1.5 px-1">{(run[C.time_sec] || 0).toFixed(isSuccess ? 2 : 1)}s</td>
-                                    <td className={`py-1.5 px-1 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>
+                                <tr key={run[C.id] || i} className={`${rowColor} border-b border-gray-800/30 hover:bg-gray-800/20`}>
+                                    <td className="py-2 px-2 font-semibold">{isSuccess ? run[C.explosives] : (run[C.fail_reason] || 'Fail')}</td>
+                                    <td className="py-2 px-2">{(run[C.time_sec] || 0).toFixed(isSuccess ? 2 : 1)}s</td>
+                                    <td className={`py-2 px-2 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>
                                         {run[C.bed_time] ? `${run[C.bed_time].toFixed(2)}s` : '-'}
                                     </td>
-                                    <td className="py-1.5 px-1">{run[C.tower] !== 'Unknown' ? run[C.tower] : '-'}</td>
-                                    <td className="py-1.5 px-1">{run[C.type] !== 'Unknown' ? run[C.type] : '-'}</td>
-                                    <td className="py-1.5 px-1">{run[C.height] > 0 ? run[C.height] : '-'}</td>
-                                    <td className="py-1.5 px-1 text-gray-500">{formatDate(run[C.timestamp])}</td>
+                                    <td className="py-2 px-2">{run[C.type] !== 'Unknown' ? run[C.type] : '-'}</td>
+                                    <td className="py-2 px-2">{run[C.height] > 0 ? run[C.height] : '-'}</td>
+                                    <td className="py-2 px-2 text-gray-500">{formatDate(run[C.timestamp])}</td>
                                 </tr>
                             );
                         })}

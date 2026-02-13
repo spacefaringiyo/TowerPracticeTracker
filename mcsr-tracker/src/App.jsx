@@ -139,8 +139,8 @@ export default function App() {
                             <button
                                 key={tab.name}
                                 className={`px-4 py-2.5 text-sm font-medium transition-colors relative whitespace-nowrap ${activeTab === i
-                                        ? 'text-white'
-                                        : 'text-gray-400 hover:text-gray-200'
+                                    ? 'text-white'
+                                    : 'text-gray-400 hover:text-gray-200'
                                     }`}
                                 onClick={() => setActiveTab(i)}
                             >
@@ -154,10 +154,20 @@ export default function App() {
                     </div>
 
                     {/* Tab Content */}
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                        {dbReady && activeTab === 0 && <SessionAnalytics refreshKey={refreshKey} />}
-                        {dbReady && activeTab === 1 && <TowerAnalytics refreshKey={refreshKey} detailRequest={towerDetailRequest} />}
-                        {dbReady && activeTab === 2 && <HeightAnalytics refreshKey={refreshKey} />}
+                    <div className="flex-1 min-h-0 overflow-hidden relative">
+                        {dbReady && (
+                            <>
+                                <div className={`absolute inset-0 ${activeTab === 0 ? 'z-10' : 'z-0 invisible'}`}>
+                                    <SessionAnalytics refreshKey={refreshKey} isActive={activeTab === 0} />
+                                </div>
+                                <div className={`absolute inset-0 ${activeTab === 1 ? 'z-10' : 'z-0 invisible'}`}>
+                                    <TowerAnalytics refreshKey={refreshKey} detailRequest={towerDetailRequest} isActive={activeTab === 1} />
+                                </div>
+                                <div className={`absolute inset-0 ${activeTab === 2 ? 'z-10' : 'z-0 invisible'}`}>
+                                    <HeightAnalytics refreshKey={refreshKey} isActive={activeTab === 2} />
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

@@ -131,7 +131,7 @@ export function getHeightStats() {
     const db = getDb();
     if (!db) return [];
     return resultToArrays(db.exec(`
-    SELECT height, COUNT(*), MIN(time_sec), MIN(total_explosives)
+    SELECT height, COUNT(*), MIN(time_sec), AVG(time_sec), MIN(total_explosives), AVG(total_explosives)
     FROM attempts
     WHERE is_success = 1 AND height > 0
     GROUP BY height
