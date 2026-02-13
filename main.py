@@ -1,20 +1,24 @@
 import flet as ft
-# --- COMPATIBILITY FIX START ---
-# The new Flet deleted 'UserControl', so we recreate it manually here.
+
+# --- UPDATED COMPATIBILITY FIX (LAZY LOADING) ---
 if not hasattr(ft, "UserControl"):
     class UserControl(ft.Column):
-        def __init__(self):
-            super().__init__()
-            self.expand = True # Ensure it takes up space
-            # Trigger the old 'build()' method and add it to this Column
-            self.controls = [self.build()]
-            
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self._built = False
+
+        # This function runs right before Flet draws the component
+        def before_update(self):
+            if not self._built:
+                # Now it's safe to call build() because __init__ is finished
+                self.controls = [self.build()]
+                self._built = True
+            super().before_update()
+
         def build(self):
-            return ft.Container() 
+            return ft.Container()
             
-    # Inject our fake class back into Flet
-    ft.UserControl = UserControl
-# --- COMPATIBILITY FIX END ---
+    ft.UserControl = User
 
 
 
