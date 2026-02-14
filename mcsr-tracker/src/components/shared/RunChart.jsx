@@ -83,11 +83,13 @@ export default function RunChart({ yValues, chartColor = '#22d3ee', title = '', 
                         type="monotone" dataKey="y" stroke={chartColor} strokeWidth={2}
                         dot={false} activeDot={{ r: 3, fill: chartColor }}
                         connectNulls
+                        animationDuration={300}
                     />
                     {trendData && (
                         <Line
                             type="linear" dataKey="trend" stroke="#ffffff88" strokeWidth={1}
                             strokeDasharray="5 5" dot={false} connectNulls
+                            animationDuration={300}
                         />
                     )}
                 </LineChart>

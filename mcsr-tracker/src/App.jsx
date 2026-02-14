@@ -183,7 +183,7 @@ export default function App() {
                 <SettingsDialog
                     leftPanelWidth={leftPanelWidth}
                     onWidthChange={setLeftPanelWidth}
-                    onClose={() => setShowSettings(false)}
+                    onClose={() => { setShowSettings(false); refreshAll(); }}
                 />
             )}
             {showCredits && (

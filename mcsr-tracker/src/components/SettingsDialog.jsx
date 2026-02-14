@@ -5,9 +5,14 @@ export default function SettingsDialog({ leftPanelWidth, onWidthChange, onClose 
     const cfg = loadConfig();
     const [width, setWidth] = useState(leftPanelWidth);
     const [navMode, setNavMode] = useState(cfg.navigation_mode || 'default');
+    const [threshold, setThreshold] = useState(cfg.session_gap_threshold || 30);
 
     const handleSave = () => {
-        saveConfig({ left_panel_width: width, navigation_mode: navMode });
+        saveConfig({
+            left_panel_width: width,
+            navigation_mode: navMode,
+            session_gap_threshold: threshold
+        });
         onWidthChange(width);
         onClose();
     };
@@ -45,6 +50,22 @@ export default function SettingsDialog({ leftPanelWidth, onWidthChange, onClose 
                             className="accent-blue-500" />
                         <span className="text-sm">Filter by Clicked Type</span>
                     </label>
+                </div>
+
+                <div className="flex items-center justify-between bg-gray-800/50 p-3 rounded-lg border border-gray-700/50 mb-6">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-medium">AFK Gap Threshold</span>
+                        <span className="text-[11px] text-gray-500">Gaps longer than this are excluded from session time</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="number" min="1" max="1440"
+                            value={threshold}
+                            onChange={e => setThreshold(Math.max(1, parseInt(e.target.value) || 1))}
+                            className="w-16 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm text-center focus:outline-none focus:border-blue-500"
+                        />
+                        <span className="text-xs text-gray-400">min</span>
+                    </div>
                 </div>
 
                 <div className="flex justify-end gap-2">

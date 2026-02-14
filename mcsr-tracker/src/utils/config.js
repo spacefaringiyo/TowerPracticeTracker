@@ -5,6 +5,8 @@ const DEFAULT_CONFIG = {
     chart_mode: 'expl',
     hide_fails: false,
     show_trend: false,
+    session_gap_threshold: 30,
+    show_dist_chart: false,
 };
 
 const CONFIG_KEY = 'mcsr_config';
