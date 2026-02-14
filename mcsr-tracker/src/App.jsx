@@ -24,6 +24,7 @@ export default function App() {
     const [refreshKey, setRefreshKey] = useState(0);
     const [activeTab, setActiveTab] = useState(0);
     const [leftPanelWidth, setLeftPanelWidth] = useState(630);
+    const [uiScale, setUiScale] = useState(100);
 
     // Dialogs
     const [showImport, setShowImport] = useState(false);
@@ -33,13 +34,14 @@ export default function App() {
     // Tower detail navigation request from Recent Runs clicks
     const [towerDetailRequest, setTowerDetailRequest] = useState(null);
 
-    // Initialize DB on mount
+    // Initialize DB and load config
     useEffect(() => {
         (async () => {
             try {
-                await initDatabase();
+                if (!dbReady) await initDatabase();
                 const cfg = loadConfig();
                 setLeftPanelWidth(cfg.left_panel_width || 630);
+                setUiScale(cfg.ui_scale || 100);
                 setDbReady(true);
             } catch (err) {
                 console.error('Failed to initialize database:', err);
@@ -47,7 +49,7 @@ export default function App() {
                 setLoading(false);
             }
         })();
-    }, []);
+    }, [refreshKey]);
 
     const refreshAll = useCallback(() => {
         setRefreshKey(k => k + 1);
@@ -95,10 +97,28 @@ export default function App() {
     const rowCount = dbReady ? getRowCount() : 0;
     const showWelcome = dbReady && rowCount === 0 && !showImport;
 
+    const scaleFactor = uiScale / 100;
+    const invScale = 100 / scaleFactor;
+
+    const handleScaleChange = useCallback((newScale) => {
+        setUiScale(newScale);
+        saveConfig({ ui_scale: newScale });
+    }, []);
+
     return (
-        <div className="flex flex-col h-screen p-2.5 gap-2 select-none">
+        <div
+            className="flex flex-col select-none overflow-hidden origin-top-left p-2.5 gap-2"
+            style={{
+                zoom: scaleFactor,
+                width: `${invScale}vw`,
+                height: `${invScale}vh`,
+                transition: 'all 0.2s ease-out'
+            }}
+        >
             {/* Header */}
             <Header
+                uiScale={uiScale}
+                onScaleChange={handleScaleChange}
                 onImport={() => setShowImport(true)}
                 onCredits={() => setShowCredits(true)}
                 onSettings={() => setShowSettings(true)}

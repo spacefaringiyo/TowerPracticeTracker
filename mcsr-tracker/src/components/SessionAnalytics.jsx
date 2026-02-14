@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { getSessionIndex, getRunsBySession, calculateSessionDuration } from '../db/queries';
+import { getSessionIndex, getRunsBySession, calculateSessionDuration, getHistoryRuns } from '../db/queries';
 import { loadConfig, saveConfig } from '../utils/config';
 import RunChart from './shared/RunChart';
 import DistChart from './shared/DistChart';
@@ -43,6 +43,22 @@ export default function SessionAnalytics({ refreshKey }) {
     const [sortMode, setSortMode] = useState('newest');
     const [groupSize, setGroupSize] = useState(1);
     const [showDist, setShowDist] = useState(config.show_dist_chart || false);
+
+    const [showIndexChart, setShowIndexChart] = useState(config.show_index_chart || false);
+    const [indexChartMode, setIndexChartMode] = useState(config.index_chart_mode || 'session');
+    const [indexChartMetric, setIndexChartMetric] = useState(config.index_chart_metric || 'expl');
+
+    // Mode-specific state
+    const [indexSessionMinRuns, setIndexSessionMinRuns] = useState(config.index_session_min_runs || 5);
+    const [indexSessionGroup, setIndexSessionGroup] = useState(config.index_session_group || 1);
+    const [indexRunGroup, setIndexRunGroup] = useState(config.index_run_group || 5);
+    const [indexSplitMinRuns, setIndexSplitMinRuns] = useState(config.index_split_min_runs || 3);
+    const [indexSplitGroup, setIndexSplitGroup] = useState(config.index_split_group || 1);
+
+    // Anomaly filtering state
+    const [runFilterAnomalies, setRunFilterAnomalies] = useState(config.index_run_filter_anomalies !== false);
+    const [runMaxExpl, setRunMaxExpl] = useState(config.index_run_max_expl || 10);
+    const [runMaxTime, setRunMaxTime] = useState(config.index_run_max_time || 300);
 
     const sessionList = useMemo(() => getSessionIndex(threshold), [refreshKey, threshold]);
 
@@ -156,6 +172,50 @@ export default function SessionAnalytics({ refreshKey }) {
         return { total, wins, fails, rate, deaths, durationSec, playDensity, bestExpl, avgExpl, bestTime, avgTime };
     }, [sessionRuns, threshold]);
 
+    const indexChartData = useMemo(() => {
+        if (!showIndexChart) return [];
+
+        if (indexChartMode === 'run') {
+            let runs = getHistoryRuns();
+            // indices: timestamp(0), time_sec(1), explosives(2)
+
+            if (runFilterAnomalies) {
+                if (indexChartMetric === 'expl') {
+                    runs = runs.filter(r => r[2] <= runMaxExpl);
+                } else {
+                    runs = runs.filter(r => r[1] <= runMaxTime);
+                }
+            }
+
+            if (indexChartMetric === 'expl') {
+                return runs.map(r => r[2]).filter(v => v > 0);
+            }
+            return runs.map(r => r[1]);
+        }
+
+        // Aggregate from sessionList (already chronologically sorted would be better, but sessionList is from getSessionIndex)
+        // getSessionIndex returns them in a specific order, let's sort them ASC by start_time for the chart
+        const base = [...sessionList]
+            .filter(s => {
+                if (indexChartMode === 'session') return s.type === 'file' && s.count >= indexSessionMinRuns;
+                if (indexChartMode === 'split') return s.type === 'split' && s.count >= indexSplitMinRuns;
+                return false;
+            })
+            .sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+        if (indexChartMetric === 'expl') {
+            return base.map(s => s.avg_expl).filter(v => v > 0);
+        }
+        return base.map(s => s.avg_time).filter(v => v > 0);
+    }, [showIndexChart, indexChartMode, indexChartMetric, indexSessionMinRuns, indexSplitMinRuns, runFilterAnomalies, runMaxExpl, runMaxTime, sessionList, refreshKey]);
+
+    const activeIndexChartGroup = useMemo(() => {
+        if (indexChartMode === 'session') return indexSessionGroup;
+        if (indexChartMode === 'run') return indexRunGroup;
+        if (indexChartMode === 'split') return indexSplitGroup;
+        return 1;
+    }, [indexChartMode, indexSessionGroup, indexRunGroup, indexSplitGroup]);
+
     if (viewMode === 'list') {
         return (
             <div className="flex flex-col h-full overflow-hidden">
@@ -169,6 +229,19 @@ export default function SessionAnalytics({ refreshKey }) {
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => {
+                                const next = !showIndexChart;
+                                setShowIndexChart(next);
+                                saveConfig({ show_index_chart: next });
+                            }}
+                            className={`p-1.5 rounded-lg transition-all ${showIndexChart ? 'bg-blue-950/40 text-blue-400 ring-1 ring-blue-500/50' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+                            title="Toggle Performance Chart"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         </button>
                     </div>
@@ -188,6 +261,98 @@ export default function SessionAnalytics({ refreshKey }) {
                         </select>
                     </div>
                 </div>
+
+                {showIndexChart && (
+                    <div className="mb-4 shrink-0 transition-all animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap bg-gray-900/40 p-2 rounded-lg border border-gray-800/50">
+                            <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase">
+                                <button onClick={() => { setIndexChartMode('session'); saveConfig({ index_chart_mode: 'session' }); }}
+                                    className={`px-3 py-1.5 transition-colors ${indexChartMode === 'session' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Session</button>
+                                <button onClick={() => { setIndexChartMode('run'); saveConfig({ index_chart_mode: 'run' }); }}
+                                    className={`px-3 py-1.5 transition-colors ${indexChartMode === 'run' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Runs</button>
+                                <button onClick={() => { setIndexChartMode('split'); saveConfig({ index_chart_mode: 'split' }); }}
+                                    className={`px-3 py-1.5 transition-colors ${indexChartMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Split</button>
+                            </div>
+
+                            <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase">
+                                <button onClick={() => { setIndexChartMetric('expl'); saveConfig({ index_chart_metric: 'expl' }); }}
+                                    className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'expl' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>
+                                <button onClick={() => { setIndexChartMetric('time'); saveConfig({ index_chart_metric: 'time' }); }}
+                                    className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'time' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Time</button>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
+                                <span className="text-[9px] text-gray-500 uppercase font-bold">Group</span>
+                                <input type="number" min="1" value={activeIndexChartGroup}
+                                    onChange={e => {
+                                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                                        if (indexChartMode === 'session') { setIndexSessionGroup(val); saveConfig({ index_session_group: val }); }
+                                        else if (indexChartMode === 'run') { setIndexRunGroup(val); saveConfig({ index_run_group: val }); }
+                                        else if (indexChartMode === 'split') { setIndexSplitGroup(val); saveConfig({ index_split_group: val }); }
+                                    }}
+                                    className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
+                            </div>
+
+                            {(indexChartMode === 'session' || indexChartMode === 'split') && (
+                                <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
+                                    <span className="text-[9px] text-gray-500 uppercase font-bold">Min Runs</span>
+                                    <input type="number" min="1" value={indexChartMode === 'session' ? indexSessionMinRuns : indexSplitMinRuns}
+                                        onChange={e => {
+                                            const val = Math.max(1, parseInt(e.target.value) || 1);
+                                            if (indexChartMode === 'session') { setIndexSessionMinRuns(val); saveConfig({ index_session_min_runs: val }); }
+                                            else { setIndexSplitMinRuns(val); saveConfig({ index_split_min_runs: val }); }
+                                        }}
+                                        className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
+                                </div>
+                            )}
+
+                            {indexChartMode === 'run' && (
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => {
+                                            const next = !runFilterAnomalies;
+                                            setRunFilterAnomalies(next);
+                                            saveConfig({ index_run_filter_anomalies: next });
+                                        }}
+                                        className={`px-2 py-1 rounded text-[9px] font-bold uppercase transition-all ${runFilterAnomalies ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-500 hover:text-gray-300'}`}
+                                        title="Filter Outliers"
+                                    >
+                                        Filter
+                                    </button>
+                                    {runFilterAnomalies && (
+                                        <div className="flex items-center gap-1.5 bg-gray-800 border border-orange-500/30 rounded px-2 py-1.5 h-[27px] animate-in fade-in zoom-in-95 duration-200">
+                                            <span className="text-[9px] text-orange-400 uppercase font-bold text-center">
+                                                Max {indexChartMetric === 'expl' ? 'Expl' : 'Sec'}
+                                            </span>
+                                            <input type="number" min="1"
+                                                value={indexChartMetric === 'expl' ? runMaxExpl : runMaxTime}
+                                                onChange={e => {
+                                                    const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                    if (indexChartMetric === 'expl') { setRunMaxExpl(val); saveConfig({ index_run_max_expl: val }); }
+                                                    else { setRunMaxTime(val); saveConfig({ index_run_max_time: val }); }
+                                                }}
+                                                className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            <div className="flex-1" />
+                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pr-1">
+                                Progress Overview
+                            </div>
+                        </div>
+                        <div className="h-[150px]">
+                            <RunChart
+                                yValues={indexChartData}
+                                chartColor={indexChartMetric === 'expl' ? '#22d3ee' : '#a78bfa'}
+                                title={indexChartMetric === 'expl' ? (indexChartMode === 'run' ? 'Expl' : 'Avg Expl') : (indexChartMode === 'run' ? 'Time' : 'Avg Time')}
+                                groupSize={activeIndexChartGroup}
+                                showTrend={true}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex-1 overflow-y-auto min-h-0 space-y-1 pr-1 custom-scrollbar">
                     {filteredList.map((row, idx) => {

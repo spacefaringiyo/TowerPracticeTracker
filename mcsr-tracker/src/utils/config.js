@@ -7,6 +7,20 @@ const DEFAULT_CONFIG = {
     show_trend: false,
     session_gap_threshold: 30,
     show_dist_chart: false,
+    show_index_chart: false,
+    index_chart_mode: 'session',
+    index_chart_metric: 'expl',
+    // Per-mode settings
+    index_session_min_runs: 5,
+    index_session_group: 1,
+    index_run_group: 5,
+    index_split_min_runs: 3,
+    index_split_group: 1,
+    // Anomaly filtering (Runs mode)
+    index_run_filter_anomalies: true,
+    index_run_max_expl: 10,
+    index_run_max_time: 300,
+    ui_scale: 100,
 };
 
 const CONFIG_KEY = 'mcsr_config';
