@@ -6,7 +6,7 @@ import LoadingBar from './components/LoadingBar';
 import WelcomeBanner from './components/WelcomeBanner';
 import RecentRuns from './components/RecentRuns';
 import TowerAnalytics from './components/TowerAnalytics';
-import SessionAnalytics from './components/SessionAnalytics';
+import HistoryAnalytics from './components/HistoryAnalytics';
 import HeightAnalytics from './components/HeightAnalytics';
 import ImportDialog from './components/ImportDialog';
 import CalendarAnalytics from './components/CalendarAnalytics';
@@ -14,7 +14,7 @@ import SettingsDialog from './components/SettingsDialog';
 import CreditsDialog from './components/CreditsDialog';
 
 const TABS = [
-    { name: 'Session Analytics', icon: '📊' },
+    { name: 'History Analytics', icon: '📊' },
     { name: 'Tower Analytics', icon: '🏗️' },
     { name: 'Height Analytics', icon: '📏' },
     { name: 'Calendar', icon: '📅' },
@@ -191,7 +191,7 @@ export default function App() {
                         {dbReady && (
                             <>
                                 <div className={`absolute inset-0 ${activeTab === 0 ? 'z-10' : 'z-0 invisible'}`}>
-                                    <SessionAnalytics refreshKey={refreshKey} isActive={activeTab === 0} onRunClick={handleRunClick} />
+                                    <HistoryAnalytics refreshKey={refreshKey} isActive={activeTab === 0} onRunClick={handleRunClick} />
                                 </div>
                                 <div className={`absolute inset-0 ${activeTab === 1 ? 'z-10' : 'z-0 invisible'}`}>
                                     <TowerAnalytics refreshKey={refreshKey} detailRequest={towerDetailRequest} isActive={activeTab === 1} />

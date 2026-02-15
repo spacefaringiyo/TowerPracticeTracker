@@ -28,7 +28,7 @@ function formatDuration(sec) {
     return `${s}s`;
 }
 
-export default function SessionAnalytics({ refreshKey, onRunClick }) {
+export default function HistoryAnalytics({ refreshKey, onRunClick }) {
     const config = useMemo(() => loadConfig(), [refreshKey]);
     const threshold = config.session_gap_threshold || 30;
 
