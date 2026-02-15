@@ -202,7 +202,7 @@ export default function App() {
 
             {/* Dialogs */}
             {showImport && (
-                <ImportDialog onClose={() => { setShowImport(false); refreshAll(); }} />
+                <ImportDialog uiScale={uiScale} onClose={() => { setShowImport(false); refreshAll(); }} />
             )}
             {showSettings && (
                 <SettingsDialog
