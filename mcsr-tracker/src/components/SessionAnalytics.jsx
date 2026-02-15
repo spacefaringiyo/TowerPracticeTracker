@@ -424,14 +424,6 @@ export default function SessionAnalytics({ refreshKey }) {
 
                                 <div className="grid grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-1 pt-2 border-t border-gray-700/20">
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase">Win / Fail</span>
-                                        <span className="text-[11px] font-bold text-gray-300">
-                                            <span className="text-green-400/90">{row.success_count}</span>
-                                            <span className="mx-1 text-gray-600">/</span>
-                                            <span className="text-red-400/90">{row.count - row.success_count}</span>
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col">
                                         <span className="text-[10px] text-gray-500 uppercase truncate">Best/Avg Expl</span>
                                         <span className={`text-[11px] font-bold ${row.best_expl ? 'text-cyan-400' : 'text-gray-500'}`}>
                                             {row.best_expl || '-'} / {row.avg_expl ? row.avg_expl.toFixed(1) : '-'}
@@ -441,6 +433,14 @@ export default function SessionAnalytics({ refreshKey }) {
                                         <span className="text-[10px] text-gray-500 uppercase truncate">Best/Avg Time</span>
                                         <span className={`text-[11px] font-bold ${row.best_time ? 'text-yellow-400' : 'text-gray-500'}`}>
                                             {row.best_time ? `${row.best_time.toFixed(1)}s` : '-'} / {row.avg_time ? `${row.avg_time.toFixed(1)}s` : '-'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-gray-500 uppercase">Success / Fail</span>
+                                        <span className="text-[11px] font-bold text-gray-300">
+                                            <span className="text-green-400/90">{row.success_count}</span>
+                                            <span className="mx-1 text-gray-600">/</span>
+                                            <span className="text-red-400/90">{row.count - row.success_count}</span>
                                         </span>
                                     </div>
                                 </div>
@@ -492,6 +492,10 @@ export default function SessionAnalytics({ refreshKey }) {
             </div>
 
             <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2 mb-3 shrink-0">
+                <StatCard label="Best/Avg Expl"
+                    value={stats.bestExpl > 0 ? `${stats.bestExpl} Best` : '-'}
+                    equalValue={stats.avgExpl > 0 ? `${stats.avgExpl.toFixed(1)} Avg` : ''}
+                    color="text-cyan-400" />
                 <StatCard label="Total Runs" value={stats.total} />
                 <StatCard label="Time Est" value={formatDuration(stats.durationSec)} color="text-gray-200" />
                 <StatCard
@@ -501,12 +505,8 @@ export default function SessionAnalytics({ refreshKey }) {
                     tooltip="Play Density: Percentage of actual run time against total session duration. Higher % means a higher concentration of practice and less idle time."
                 />
                 <StatCard label="Success %" value={`${stats.rate.toFixed(1)}%`} color={stats.rate > 20 ? 'text-green-400' : 'text-orange-400'} />
-                <StatCard label="Win / Fail" value={stats.wins} equalValue={stats.fails} color="text-green-400" equalColor="text-red-400" />
+                <StatCard label="Success / Fail" value={stats.wins} equalValue={stats.fails} color="text-green-400" equalColor="text-red-400" />
                 <StatCard label="Deaths" value={stats.deaths} color="text-red-500" />
-                <StatCard label="Best/Avg Expl"
-                    value={stats.bestExpl > 0 ? `${stats.bestExpl} Best` : '-'}
-                    equalValue={stats.avgExpl > 0 ? `${stats.avgExpl.toFixed(1)} Avg` : ''}
-                    color="text-cyan-400" />
                 <StatCard label="Best/Avg Time"
                     value={stats.bestTime > 0 ? `${stats.bestTime.toFixed(2)}s PB` : '-'}
                     equalValue={stats.avgTime > 0 ? `${stats.avgTime.toFixed(1)}s Avg` : ''}

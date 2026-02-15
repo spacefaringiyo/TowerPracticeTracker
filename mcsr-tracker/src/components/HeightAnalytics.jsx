@@ -352,12 +352,16 @@ export default function HeightAnalytics({ refreshKey }) {
             </div>
 
             {/* Stat Cards */}
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2 mb-3 shrink-0">
+            <div className="flex flex-wrap gap-2 mb-3 shrink-0 justify-start">
+                <StatCard label="Best/Avg Expl"
+                    value={bestExpl > 0 ? `${bestExpl} Best` : '-'}
+                    equalValue={avgExpl > 0 ? `${avgExpl.toFixed(1)} Avg` : ''}
+                    color="text-cyan-400" />
                 <StatCard label="Total Success" value={filteredRuns.length} />
-                <StatCard label="Best Expl" value={bestExpl > 0 ? bestExpl : '-'} color="text-cyan-400" />
-                <StatCard label="Avg Expl" value={avgExpl > 0 ? avgExpl.toFixed(1) : '-'} color="text-blue-300" />
-                <StatCard label="Best Time" value={bestTime > 0 ? `${bestTime.toFixed(2)}s` : '-'} color="text-yellow-400" />
-                <StatCard label="Avg Time" value={avgTime > 0 ? `${avgTime.toFixed(1)}s` : '-'} color="text-gray-300" />
+                <StatCard label="Best/Avg Time"
+                    value={bestTime > 0 ? `${bestTime.toFixed(2)}s PB` : '-'}
+                    equalValue={avgTime > 0 ? `${avgTime.toFixed(1)}s Avg` : ''}
+                    color="text-yellow-400" />
             </div>
 
             {/* Filters */}
