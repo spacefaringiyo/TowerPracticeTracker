@@ -242,11 +242,11 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center z-50"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={onClose}
             style={{ zoom: 100 / uiScale }}
         >
-            <div className="bg-gray-900 border-x border-gray-800 w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col h-full"
+            <div className="bg-gray-900 border border-gray-800 w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] rounded-2xl"
                 onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
