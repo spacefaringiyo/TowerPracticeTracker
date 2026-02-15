@@ -38,7 +38,7 @@ export function getHistoryRuns() {
     const db = getDb();
     if (!db) return [];
     return resultToArrays(db.exec(
-        `SELECT timestamp, time_sec, total_explosives FROM attempts WHERE is_success = 1 AND time_sec > 0 ORDER BY timestamp ASC`
+        `SELECT * FROM attempts ORDER BY timestamp DESC, id DESC`
     ));
 }
 

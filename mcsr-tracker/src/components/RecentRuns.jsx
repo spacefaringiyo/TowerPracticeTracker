@@ -170,7 +170,7 @@ export default function RecentRuns({ refreshKey, onRunClick, width }) {
                             return (
                                 <tr key={run[C.id] || i}
                                     className={`${rowColor} hover:bg-gray-800/50 cursor-pointer transition-colors border-b border-gray-800/30`}
-                                    onClick={() => tower !== 'Unknown' && onRunClick?.(tower, rType)}>
+                                    onClick={() => tower !== 'Unknown' && onRunClick?.(tower, rType, run[C.height])}>
                                     <td className="py-1.5 px-1 font-semibold whitespace-nowrap">{expl}</td>
                                     <td className="py-1.5 px-1 whitespace-nowrap">{time}</td>
                                     {/* <td className={`py-1.5 px-1 whitespace-nowrap ${isSuccess && run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>{bed}</td> */}

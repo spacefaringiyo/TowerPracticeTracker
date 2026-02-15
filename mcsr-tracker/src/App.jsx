@@ -33,8 +33,9 @@ export default function App() {
     const [showSettings, setShowSettings] = useState(false);
     const [showCredits, setShowCredits] = useState(false);
 
-    // Tower detail navigation request from Recent Runs clicks
+    // Tower/Height detail navigation request from run clicks
     const [towerDetailRequest, setTowerDetailRequest] = useState(null);
+    const [heightDetailRequest, setHeightDetailRequest] = useState(null);
 
     // Initialize DB and load config
     useEffect(() => {
@@ -57,16 +58,26 @@ export default function App() {
         setRefreshKey(k => k + 1);
     }, []);
 
-    // Handle run click in Recent Runs panel
-    const handleRunClick = useCallback((towerName, runType) => {
+    // Handle run click — navigate to Tower or Height Analytics based on setting
+    const handleRunClick = useCallback((towerName, runType, height) => {
         const cfg = loadConfig();
-        const mode = cfg.navigation_mode || 'default';
-        setActiveTab(1); // Switch to Tower Analytics tab (was 2)
-        setTowerDetailRequest({
-            tower: towerName,
-            filterType: mode === 'filter' ? runType : null,
-            key: Date.now()
-        });
+        const navMode = cfg.navigation_mode || 'default';
+        const target = cfg.run_click_target || 'tower';
+
+        if (target === 'height' && height && height > 0) {
+            setActiveTab(2); // Height Analytics tab
+            setHeightDetailRequest({
+                height: height,
+                key: Date.now()
+            });
+        } else {
+            setActiveTab(1); // Tower Analytics tab
+            setTowerDetailRequest({
+                tower: towerName,
+                filterType: navMode === 'filter' ? runType : null,
+                key: Date.now()
+            });
+        }
     }, []);
 
     // Resizable split panel
@@ -180,13 +191,13 @@ export default function App() {
                         {dbReady && (
                             <>
                                 <div className={`absolute inset-0 ${activeTab === 0 ? 'z-10' : 'z-0 invisible'}`}>
-                                    <SessionAnalytics refreshKey={refreshKey} isActive={activeTab === 0} />
+                                    <SessionAnalytics refreshKey={refreshKey} isActive={activeTab === 0} onRunClick={handleRunClick} />
                                 </div>
                                 <div className={`absolute inset-0 ${activeTab === 1 ? 'z-10' : 'z-0 invisible'}`}>
                                     <TowerAnalytics refreshKey={refreshKey} detailRequest={towerDetailRequest} isActive={activeTab === 1} />
                                 </div>
                                 <div className={`absolute inset-0 ${activeTab === 2 ? 'z-10' : 'z-0 invisible'}`}>
-                                    <HeightAnalytics refreshKey={refreshKey} isActive={activeTab === 2} />
+                                    <HeightAnalytics refreshKey={refreshKey} isActive={activeTab === 2} detailRequest={heightDetailRequest} />
                                 </div>
                                 <div className={`absolute inset-0 ${activeTab === 3 ? 'z-10' : 'z-0 invisible'}`}>
                                     <CalendarAnalytics refreshKey={refreshKey} isActive={activeTab === 3} />

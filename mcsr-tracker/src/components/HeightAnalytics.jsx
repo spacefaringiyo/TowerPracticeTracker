@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getHeightStats, getRunsByHeight, getPbsMap } from '../db/queries';
 import { loadConfig, saveConfig } from '../utils/config';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -20,7 +20,7 @@ function formatDate(ts) {
     } catch { return ts || ''; }
 }
 
-export default function HeightAnalytics({ refreshKey }) {
+export default function HeightAnalytics({ refreshKey, detailRequest }) {
     const config = useMemo(() => loadConfig(), [refreshKey]);
     const [viewMode, setViewMode] = useState('list');
     const [currentHeight, setCurrentHeight] = useState(null);
@@ -34,6 +34,13 @@ export default function HeightAnalytics({ refreshKey }) {
     const [activeTowers, setActiveTowers] = useState(new Set());
     const [showIndexChart, setShowIndexChart] = useState(config.show_height_index_chart || false);
     const [showDist, setShowDist] = useState(config.show_height_dist || false);
+
+    // Handle navigation from run clicks
+    useEffect(() => {
+        if (detailRequest?.height) {
+            showDetail(detailRequest.height);
+        }
+    }, [detailRequest?.key]);
 
     const heightStats = useMemo(() => getHeightStats(), [refreshKey]);
     const pbMap = useMemo(() => getPbsMap(), [refreshKey]);

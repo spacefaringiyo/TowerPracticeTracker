@@ -5,12 +5,14 @@ export default function SettingsDialog({ leftPanelWidth, onWidthChange, onClose 
     const cfg = loadConfig();
     const [width, setWidth] = useState(leftPanelWidth);
     const [navMode, setNavMode] = useState(cfg.navigation_mode || 'default');
+    const [clickTarget, setClickTarget] = useState(cfg.run_click_target || 'tower');
     const [threshold, setThreshold] = useState(cfg.session_gap_threshold || 30);
 
     const handleSave = () => {
         saveConfig({
             left_panel_width: width,
             navigation_mode: navMode,
+            run_click_target: clickTarget,
             session_gap_threshold: threshold
         });
         onWidthChange(width);
@@ -49,6 +51,24 @@ export default function SettingsDialog({ leftPanelWidth, onWidthChange, onClose 
                             onChange={() => setNavMode('filter')}
                             className="accent-blue-500" />
                         <span className="text-sm">Filter by Clicked Type</span>
+                    </label>
+                </div>
+
+                <div className="space-y-2 mb-6">
+                    <p className="text-xs text-gray-400 mb-1">Run Click Destination</p>
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                        <input type="radio" name="clickTarget" value="tower"
+                            checked={clickTarget === 'tower'}
+                            onChange={() => setClickTarget('tower')}
+                            className="accent-blue-500" />
+                        <span className="text-sm">Tower Analytics</span>
+                    </label>
+                    <label className="flex items-center gap-2.5 cursor-pointer">
+                        <input type="radio" name="clickTarget" value="height"
+                            checked={clickTarget === 'height'}
+                            onChange={() => setClickTarget('height')}
+                            className="accent-blue-500" />
+                        <span className="text-sm">Height Analytics</span>
                     </label>
                 </div>
 

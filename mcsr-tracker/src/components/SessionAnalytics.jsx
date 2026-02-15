@@ -28,26 +28,30 @@ function formatDuration(sec) {
     return `${s}s`;
 }
 
-export default function SessionAnalytics({ refreshKey }) {
+export default function SessionAnalytics({ refreshKey, onRunClick }) {
     const config = useMemo(() => loadConfig(), [refreshKey]);
     const threshold = config.session_gap_threshold || 30;
 
     const [viewMode, setViewMode] = useState('list');
     const [currentIndex, setCurrentIndex] = useState(-1);
-    const [historyMode, setHistoryMode] = useState(config.history_mode || 'session');
+    const [activeMode, setActiveMode] = useState(config.history_mode || 'session');
     const [chartMode, setChartMode] = useState('expl');
     const [showTrend, setShowTrend] = useState(false);
     const [hideFails, setHideFails] = useState(false);
     const [hideWL, setHideWL] = useState(false);
     const [listSortMode, setListSortMode] = useState('newest');
     const [sortMode, setSortMode] = useState('newest');
+
+    // Run history list state
+    const [runListHideFails, setRunListHideFails] = useState(false);
+    const [runListHideWL, setRunListHideWL] = useState(false);
+    const [runListSortMode, setRunListSortMode] = useState('newest');
     const [groupSize, setGroupSize] = useState(1);
     const [showDist, setShowDist] = useState(config.show_dist_chart || false);
     const [showCareerDist, setShowCareerDist] = useState(config.show_career_dist || false);
     const [careerMaxExpl, setCareerMaxExpl] = useState(config.career_max_expl || 10);
 
     const [showIndexChart, setShowIndexChart] = useState(config.show_index_chart || false);
-    const [indexChartMode, setIndexChartMode] = useState(config.index_chart_mode || 'session');
     const [indexChartMetric, setIndexChartMetric] = useState(config.index_chart_metric || 'expl');
 
     // Mode-specific state
@@ -65,10 +69,10 @@ export default function SessionAnalytics({ refreshKey }) {
     const sessionList = useMemo(() => {
         const raw = getSessionIndex(threshold);
         return raw.filter(s => {
-            if (historyMode === 'split') return s.type === 'split';
+            if (activeMode === 'split') return s.type === 'split';
             return s.type === 'file';
         });
-    }, [refreshKey, threshold, historyMode]);
+    }, [refreshKey, threshold, activeMode]);
 
     const filteredList = useMemo(() => {
         let list = [...sessionList];
@@ -182,11 +186,12 @@ export default function SessionAnalytics({ refreshKey }) {
     }, [sessionRuns, threshold]);
 
     const careerDistData = useMemo(() => {
-        const successes = getHistoryRuns();
+        const allRuns = getHistoryRuns();
+        const successes = allRuns.filter(r => r[C.is_success]);
         if (successes.length === 0) return {};
         const counts = {};
         successes.forEach(r => {
-            const expl = r[2] || 0;
+            const expl = r[C.total_explosives] || 0;
             if (expl > 0 && expl <= careerMaxExpl) {
                 counts[expl] = (counts[expl] || 0) + 1;
             }
@@ -204,30 +209,31 @@ export default function SessionAnalytics({ refreshKey }) {
     const indexChartData = useMemo(() => {
         if (!showIndexChart) return [];
 
-        if (indexChartMode === 'run') {
-            let runs = getHistoryRuns();
-            // indices: timestamp(0), time_sec(1), explosives(2)
+        if (activeMode === 'run') {
+            let runs = getHistoryRuns().filter(r => r[C.is_success] && r[C.time_sec] > 0);
 
             if (runFilterAnomalies) {
                 if (indexChartMetric === 'expl') {
-                    runs = runs.filter(r => r[2] <= runMaxExpl);
+                    runs = runs.filter(r => (r[C.total_explosives] || 0) <= runMaxExpl);
                 } else {
-                    runs = runs.filter(r => r[1] <= runMaxTime);
+                    runs = runs.filter(r => r[C.time_sec] <= runMaxTime);
                 }
             }
 
+            // Reverse so chart shows oldest to newest (left to right)
+            runs = runs.reverse();
+
             if (indexChartMetric === 'expl') {
-                return runs.map(r => r[2]).filter(v => v > 0);
+                return runs.map(r => r[C.total_explosives]).filter(v => v > 0);
             }
-            return runs.map(r => r[1]);
+            return runs.map(r => r[C.time_sec]);
         }
 
-        // Aggregate from sessionList (already chronologically sorted would be better, but sessionList is from getSessionIndex)
-        // getSessionIndex returns them in a specific order, let's sort them ASC by start_time for the chart
+        // Aggregate from sessionList
         const base = [...sessionList]
             .filter(s => {
-                if (indexChartMode === 'session') return s.type === 'file' && s.count >= indexSessionMinRuns;
-                if (indexChartMode === 'split') return s.type === 'split' && s.count >= indexSplitMinRuns;
+                if (activeMode === 'session') return s.type === 'file' && s.count >= indexSessionMinRuns;
+                if (activeMode === 'split') return s.type === 'split' && s.count >= indexSplitMinRuns;
                 return false;
             })
             .sort((a, b) => a.start_time.localeCompare(b.start_time));
@@ -236,14 +242,43 @@ export default function SessionAnalytics({ refreshKey }) {
             return base.map(s => s.avg_expl).filter(v => v > 0);
         }
         return base.map(s => s.avg_time).filter(v => v > 0);
-    }, [showIndexChart, indexChartMode, indexChartMetric, indexSessionMinRuns, indexSplitMinRuns, runFilterAnomalies, runMaxExpl, runMaxTime, sessionList, refreshKey]);
+    }, [showIndexChart, activeMode, indexChartMetric, indexSessionMinRuns, indexSplitMinRuns, runFilterAnomalies, runMaxExpl, runMaxTime, sessionList, refreshKey]);
 
     const activeIndexChartGroup = useMemo(() => {
-        if (indexChartMode === 'session') return indexSessionGroup;
-        if (indexChartMode === 'run') return indexRunGroup;
-        if (indexChartMode === 'split') return indexSplitGroup;
+        if (activeMode === 'session') return indexSessionGroup;
+        if (activeMode === 'run') return indexRunGroup;
+        if (activeMode === 'split') return indexSplitGroup;
         return 1;
-    }, [indexChartMode, indexSessionGroup, indexRunGroup, indexSplitGroup]);
+    }, [activeMode, indexSessionGroup, indexRunGroup, indexSplitGroup]);
+
+    // Run history list (filtered, sorted, sliced)
+    const runsList = useMemo(() => {
+        if (activeMode !== 'run') return [];
+        let runs = getHistoryRuns();
+        if (runListHideFails) runs = runs.filter(r => r[C.is_success]);
+        if (runListHideWL) runs = runs.filter(r => r[C.fail_reason] !== 'World Load');
+
+        if (runListSortMode === 'newest') {
+            runs.sort((a, b) => b[C.timestamp].localeCompare(a[C.timestamp]));
+        } else if (runListSortMode === 'oldest') {
+            runs.sort((a, b) => a[C.timestamp].localeCompare(b[C.timestamp]));
+        } else if (runListSortMode === 'fastest') {
+            const succ = runs.filter(r => r[C.is_success]).sort((a, b) => a[C.time_sec] - b[C.time_sec]);
+            const fail = runs.filter(r => !r[C.is_success]);
+            runs = [...succ, ...fail];
+        } else if (runListSortMode === 'least_expl') {
+            const succ = runs.filter(r => r[C.is_success]).sort((a, b) => (a[C.total_explosives] || 99) - (b[C.total_explosives] || 99));
+            const fail = runs.filter(r => !r[C.is_success]);
+            runs = [...succ, ...fail];
+        } else if (runListSortMode === 'highest_y') {
+            runs.sort((a, b) => (b[C.height] || 0) - (a[C.height] || 0));
+        } else if (runListSortMode === 'lowest_y') {
+            const withY = runs.filter(r => (r[C.height] || 0) > 0).sort((a, b) => a[C.height] - b[C.height]);
+            const noY = runs.filter(r => !((r[C.height] || 0) > 0));
+            runs = [...withY, ...noY];
+        }
+        return runs.slice(0, 200);
+    }, [activeMode, runListHideFails, runListHideWL, runListSortMode, refreshKey]);
 
     if (viewMode === 'list') {
         return (
@@ -253,16 +288,22 @@ export default function SessionAnalytics({ refreshKey }) {
                         <h2 className="text-lg font-bold text-gray-100">History</h2>
                         <div className="flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700/50 p-0.5">
                             <button
-                                onClick={() => { setHistoryMode('session'); saveConfig({ history_mode: 'session' }); }}
-                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${historyMode === 'session' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                                onClick={() => { setActiveMode('session'); saveConfig({ history_mode: 'session' }); }}
+                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${activeMode === 'session' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                                 Sessions
                             </button>
                             <button
-                                onClick={() => { setHistoryMode('split'); saveConfig({ history_mode: 'split' }); }}
-                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${historyMode === 'split' ? 'bg-orange-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                                onClick={() => { setActiveMode('split'); saveConfig({ history_mode: 'split' }); }}
+                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${activeMode === 'split' ? 'bg-orange-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
                             >
                                 Splits
+                            </button>
+                            <button
+                                onClick={() => { setActiveMode('run'); saveConfig({ history_mode: 'run' }); }}
+                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${activeMode === 'run' ? 'bg-cyan-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                Runs
                             </button>
                         </div>
                         <button
@@ -293,20 +334,56 @@ export default function SessionAnalytics({ refreshKey }) {
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <span className="text-[11px] text-gray-500">Sort By</span>
-                        <select value={listSortMode} onChange={e => setListSortMode(e.target.value)}
-                            className="bg-gray-800 border border-gray-700/50 rounded px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-gray-500 hover:border-gray-600 transition-colors">
-                            <option value="newest">Newest</option>
-                            <option value="oldest">Oldest</option>
-                            <option value="runs">Most Runs</option>
-                            <option value="duration">Longest Session</option>
-                            <option value="rate">Highest Success %</option>
-                            <option value="wins">Most Wins</option>
-                            <option value="avg_expl">Avg Expl (Lowest)</option>
-                            <option value="avg_time">Avg Time (Fastest)</option>
-                        </select>
-                    </div>
+                    {activeMode !== 'run' ? (
+                        <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-gray-500">Sort By</span>
+                            <select value={listSortMode} onChange={e => setListSortMode(e.target.value)}
+                                className="bg-gray-800 border border-gray-700/50 rounded px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-gray-500 hover:border-gray-600 transition-colors">
+                                <option value="newest">Newest</option>
+                                <option value="oldest">Oldest</option>
+                                <option value="runs">Most Runs</option>
+                                <option value="duration">Longest Session</option>
+                                <option value="rate">Highest Success %</option>
+                                <option value="wins">Most Wins</option>
+                                <option value="avg_expl">Avg Expl (Lowest)</option>
+                                <option value="avg_time">Avg Time (Fastest)</option>
+                            </select>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setRunListHideFails(v => !v)}
+                                title={runListHideFails ? "Showing Wins Only" : "Showing All Runs"}
+                                className={`p-1.5 rounded transition-all border ${runListHideFails ? 'bg-red-700 border-red-500 text-white shadow-lg shadow-red-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
+                                {runListHideFails ? (
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                ) : (
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.04m5.882-5.903A9.972 9.972 0 0112 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-1.124 0-2.193-.182-3.192-.518M11.332 11.332L15 15M9 15L12.668 11.332" />
+                                    </svg>
+                                )}
+                            </button>
+                            <button onClick={() => !runListHideFails && setRunListHideWL(v => !v)}
+                                disabled={runListHideFails}
+                                className={`p-1.5 rounded transition-all border ${runListHideWL ? 'bg-orange-700 border-orange-500 text-white shadow-lg shadow-orange-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'} ${runListHideFails ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
+                                title={runListHideFails ? "Redundant when Hide Fails is active" : "Hide World Loads"}>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                                </svg>
+                            </button>
+                            <select value={runListSortMode} onChange={e => setRunListSortMode(e.target.value)}
+                                className="bg-gray-800 border border-gray-700/50 rounded px-2.5 py-1.5 text-[11px] text-gray-200 focus:outline-none focus:border-gray-500 hover:border-gray-600 transition-colors">
+                                <option value="newest">Newest</option>
+                                <option value="oldest">Oldest</option>
+                                <option value="fastest">Fastest Time</option>
+                                <option value="least_expl">Least Expl</option>
+                                <option value="highest_y">Highest Y</option>
+                                <option value="lowest_y">Lowest Y</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {(showIndexChart || showCareerDist) && (
@@ -314,15 +391,6 @@ export default function SessionAnalytics({ refreshKey }) {
                         {showIndexChart && (
                             <div className="flex-1 min-w-0 flex flex-col">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap bg-gray-900/40 p-2 rounded-lg border border-gray-800/50">
-                                    <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase transition-all shadow-sm">
-                                        <button onClick={() => { setIndexChartMode('session'); saveConfig({ index_chart_mode: 'session' }); }}
-                                            className={`px-3 py-1.5 transition-colors ${indexChartMode === 'session' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Session</button>
-                                        <button onClick={() => { setIndexChartMode('run'); saveConfig({ index_chart_mode: 'run' }); }}
-                                            className={`px-3 py-1.5 transition-colors ${indexChartMode === 'run' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Runs</button>
-                                        <button onClick={() => { setIndexChartMode('split'); saveConfig({ index_chart_mode: 'split' }); }}
-                                            className={`px-3 py-1.5 transition-colors ${indexChartMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Split</button>
-                                    </div>
-
                                     <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase transition-all shadow-sm">
                                         <button onClick={() => { setIndexChartMetric('expl'); saveConfig({ index_chart_metric: 'expl' }); }}
                                             className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'expl' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>
@@ -335,27 +403,27 @@ export default function SessionAnalytics({ refreshKey }) {
                                         <input type="number" min="1" value={activeIndexChartGroup}
                                             onChange={e => {
                                                 const val = Math.max(1, parseInt(e.target.value) || 1);
-                                                if (indexChartMode === 'session') { setIndexSessionGroup(val); saveConfig({ index_session_group: val }); }
-                                                else if (indexChartMode === 'run') { setIndexRunGroup(val); saveConfig({ index_run_group: val }); }
-                                                else if (indexChartMode === 'split') { setIndexSplitGroup(val); saveConfig({ index_split_group: val }); }
+                                                if (activeMode === 'session') { setIndexSessionGroup(val); saveConfig({ index_session_group: val }); }
+                                                else if (activeMode === 'run') { setIndexRunGroup(val); saveConfig({ index_run_group: val }); }
+                                                else if (activeMode === 'split') { setIndexSplitGroup(val); saveConfig({ index_split_group: val }); }
                                             }}
                                             className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
                                     </div>
 
-                                    {(indexChartMode === 'session' || indexChartMode === 'split') && (
+                                    {(activeMode === 'session' || activeMode === 'split') && (
                                         <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
                                             <span className="text-[9px] text-gray-500 uppercase font-bold">Min Runs</span>
-                                            <input type="number" min="1" value={indexChartMode === 'session' ? indexSessionMinRuns : indexSplitMinRuns}
+                                            <input type="number" min="1" value={activeMode === 'session' ? indexSessionMinRuns : indexSplitMinRuns}
                                                 onChange={e => {
                                                     const val = Math.max(1, parseInt(e.target.value) || 1);
-                                                    if (indexChartMode === 'session') { setIndexSessionMinRuns(val); saveConfig({ index_session_min_runs: val }); }
+                                                    if (activeMode === 'session') { setIndexSessionMinRuns(val); saveConfig({ index_session_min_runs: val }); }
                                                     else { setIndexSplitMinRuns(val); saveConfig({ index_split_min_runs: val }); }
                                                 }}
                                                 className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
                                         </div>
                                     )}
 
-                                    {indexChartMode === 'run' && (
+                                    {activeMode === 'run' && (
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={() => {
@@ -395,7 +463,7 @@ export default function SessionAnalytics({ refreshKey }) {
                                     <RunChart
                                         yValues={indexChartData}
                                         chartColor={indexChartMetric === 'expl' ? '#22d3ee' : '#a78bfa'}
-                                        title={indexChartMetric === 'expl' ? (indexChartMode === 'run' ? 'Expl' : 'Avg Expl') : (indexChartMode === 'run' ? 'Time' : 'Avg Time')}
+                                        title={indexChartMetric === 'expl' ? (activeMode === 'run' ? 'Expl' : 'Avg Expl') : (activeMode === 'run' ? 'Time' : 'Avg Time')}
                                         groupSize={activeIndexChartGroup}
                                         showTrend={true}
                                     />
@@ -429,14 +497,62 @@ export default function SessionAnalytics({ refreshKey }) {
                 )}
 
                 <div className="flex-1 overflow-y-auto min-h-0 space-y-1 pr-1 custom-scrollbar">
-                    {filteredList.map((row, idx) => {
+                    {activeMode === 'run' ? (
+                        <div className="bg-gray-900/40 rounded-xl border border-gray-800/50 overflow-hidden">
+                            <table className="text-xs border-separate border-spacing-0">
+                                <thead className="sticky top-0 bg-gray-900 border-b border-gray-800 shadow-sm z-10">
+                                    <tr className="text-gray-500 text-left uppercase tracking-wider font-bold">
+                                        <th className="py-2.5 px-2 w-[80px]">Expl</th>
+                                        <th className="py-2.5 px-2 w-[100px]">Time</th>
+                                        <th className="py-2.5 px-2 w-[100px]">Bed</th>
+                                        <th className="py-2.5 px-2 w-[120px]">Tower</th>
+                                        <th className="py-2.5 px-2 w-[200px]">Type</th>
+                                        <th className="py-2.5 px-2 text-center w-[60px]">Y</th>
+                                        <th className="py-2.5 px-2 text-right w-[120px]">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-800/20">
+                                    {runsList.map((run, i) => {
+                                        const isSuccess = Boolean(run[C.is_success]);
+                                        const rowColor = isSuccess ? 'text-gray-200' : 'text-red-400/80';
+                                        const towerName = run[C.tower];
+                                        const runType = run[C.type];
+                                        const isClickable = isSuccess && towerName && towerName !== 'Unknown' && onRunClick;
+                                        return (
+                                            <tr key={run[C.id] || i}
+                                                className={`${rowColor} hover:bg-gray-800/30 transition-colors group ${isClickable ? 'cursor-pointer' : ''}`}
+                                                onClick={() => isClickable && onRunClick(towerName, runType, run[C.height])}>
+                                                <td className="py-2 px-2 font-bold">{isSuccess ? (run[C.explosives] || '-') : (run[C.fail_reason] || 'Fail')}</td>
+                                                <td className="py-2 px-2 font-mono">{(run[C.time_sec] || 0).toFixed(isSuccess ? 2 : 1)}s</td>
+                                                <td className={`py-2 px-2 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-600'}`}>
+                                                    {run[C.bed_time] ? `${run[C.bed_time].toFixed(2)}s` : '-'}
+                                                </td>
+                                                <td className="py-2 px-2 text-gray-400">{towerName || '-'}</td>
+                                                <td className="py-2 px-2 text-gray-400">{runType !== 'Unknown' ? runType : '-'}</td>
+                                                <td className="py-2 px-2 text-center font-mono text-gray-500 group-hover:text-gray-300 transition-colors">{run[C.height] > 0 ? run[C.height] : '-'}</td>
+                                                <td className="py-2 px-2 text-right text-gray-500 font-mono text-[10px]">{formatDate(run[C.timestamp])}</td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            {getHistoryRuns().length > 200 && (
+                                <div className="p-4 bg-gray-900/60 text-center border-t border-gray-800/50">
+                                    <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em]">Showing Latest 200 Runs</p>
+                                </div>
+                            )}
+                            {runsList.length === 0 && (
+                                <div className="py-12 text-center text-gray-500 font-medium">No runs found matching filters.</div>
+                            )}
+                        </div>
+                    ) : filteredList.map((row, idx) => {
                         const winRate = row.count > 0 ? (row.success_count / row.count * 100).toFixed(1) : '0';
                         const density = row.duration_sec > 0 ? (row.play_time_sec / row.duration_sec * 100).toFixed(0) : '0';
 
                         return (
                             <div key={`${row.type}-${row.id}`}
                                 className="group flex flex-col p-3 rounded-lg bg-gray-800/40 hover:bg-gray-800/70 border border-gray-700/30 hover:border-gray-600/50 transition-all cursor-pointer"
-                                onClick={() => loadDetail(sessionList.findIndex(s => s.id === row.id && s.type === row.type))}>
+                                onClick={() => loadDetail(idx)}>
                                 <div className="flex items-center gap-4 min-w-0">
                                     <div className="flex items-center gap-3 min-w-0">
                                         <div className={`p-2 rounded-lg shrink-0 ${row.type === 'file' ? 'bg-blue-500/10 text-blue-400' : 'bg-orange-500/10 text-orange-400'}`}>
@@ -687,8 +803,13 @@ export default function SessionAnalytics({ refreshKey }) {
                         {displayRuns.map((run, i) => {
                             const isSuccess = Boolean(run[C.is_success]);
                             const rowColor = isSuccess ? 'text-gray-200' : 'text-red-400/80';
+                            const towerName = run[C.tower];
+                            const runType = run[C.type];
+                            const isClickable = isSuccess && towerName && towerName !== 'Unknown' && onRunClick;
                             return (
-                                <tr key={run[C.id] || i} className={`${rowColor} hover:bg-gray-800/30 transition-colors group`}>
+                                <tr key={run[C.id] || i}
+                                    className={`${rowColor} hover:bg-gray-800/30 transition-colors group ${isClickable ? 'cursor-pointer' : ''}`}
+                                    onClick={() => isClickable && onRunClick(towerName, runType, run[C.height])}>
                                     <td className="py-2 px-2 font-bold">{isSuccess ? (run[C.explosives] || '-') : (run[C.fail_reason] || 'Fail')}</td>
                                     <td className="py-2 px-2 font-mono">{(run[C.time_sec] || 0).toFixed(isSuccess ? 2 : 1)}s</td>
                                     <td className={`py-2 px-2 ${run[C.bed_time] ? 'text-orange-300' : 'text-gray-600'}`}>
