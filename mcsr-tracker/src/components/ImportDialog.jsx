@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { processFileContent } from '../engine/parser';
 import { saveToStorage, getRowCount, exportJson, importJson, clearDb } from '../db/database';
+import { loadConfig, saveConfig } from '../utils/config';
 
 const COMMON_LOG_PATHS = [
     { name: 'Prism (MCSRRanked)', path: String.raw`%APPDATA%\PrismLauncher\instances\MCSRRanked-1.16.1\logs` },
@@ -16,6 +17,8 @@ export default function ImportDialog({ onClose }) {
     const [stats, setStats] = useState({ new: 0, dupe: 0, total: 0, runsInBatch: 0 });
     const [dragActive, setDragActive] = useState(false);
     const [copiedPath, setCopiedPath] = useState(null);
+    const [pinInput, setPinInput] = useState('');
+    const [config, setConfig] = useState(loadConfig());
 
     const fileInputRef = useRef(null);
     const backupInputRef = useRef(null);
@@ -70,6 +73,32 @@ export default function ImportDialog({ onClose }) {
     };
 
     const handleFileChange = (e) => processFiles(Array.from(e.target.files));
+
+    const triggerMainImport = async () => {
+        // Modern showOpenFilePicker approach (Chromium)
+        if (window.showOpenFilePicker) {
+            try {
+                const handles = await window.showOpenFilePicker({
+                    id: 'import-logs',
+                    multiple: true,
+                    types: [
+                        {
+                            description: 'Minecraft Logs',
+                            accept: { 'text/plain': ['.log'], 'application/gzip': ['.gz'] }
+                        }
+                    ]
+                });
+                const files = await Promise.all(handles.map(h => h.getFile()));
+                processFiles(files);
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error('Picker error, falling back:', err);
+            }
+        }
+        // Fallback
+        fileInputRef.current?.click();
+    };
 
     const handleDrag = useCallback((e) => {
         e.preventDefault();
@@ -147,7 +176,7 @@ export default function ImportDialog({ onClose }) {
     }, []);
 
     const handleBackupImport = useCallback(async (e) => {
-        const file = e.target.files?.[0];
+        const file = e.type === 'change' ? e.target.files?.[0] : e;
         if (!file) return;
         setProcessing(true);
         try {
@@ -162,6 +191,31 @@ export default function ImportDialog({ onClose }) {
         if (backupInputRef.current) backupInputRef.current.value = '';
     }, []);
 
+    const triggerBackupRestore = async () => {
+        if (window.showOpenFilePicker) {
+            try {
+                const [handle] = await window.showOpenFilePicker({
+                    id: 'restore-backups',
+                    startIn: 'downloads',
+                    multiple: false,
+                    types: [
+                        {
+                            description: 'MCSR Tracker Backup',
+                            accept: { 'application/json': ['.json'] }
+                        }
+                    ]
+                });
+                const file = await handle.getFile();
+                handleBackupImport(file);
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                console.error('Picker error, falling back:', err);
+            }
+        }
+        backupInputRef.current?.click();
+    };
+
     const handleClear = useCallback(async () => {
         if (!window.confirm('This will permanently delete ALL stored runs. This cannot be undone. Continue?')) return;
         clearDb();
@@ -175,6 +229,15 @@ export default function ImportDialog({ onClose }) {
             setCopiedPath(path);
             setStatus(`Copied path!`);
         });
+    };
+
+    const handlePinCustomPath = () => {
+        const path = pinInput.trim();
+        if (!path) return;
+        const newConfig = saveConfig({ custom_import_path: path });
+        setConfig(newConfig);
+        setPinInput('');
+        setStatus('Custom path pinned!');
     };
 
     return (
@@ -211,6 +274,24 @@ export default function ImportDialog({ onClose }) {
                     <div className="mb-6">
                         <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 block">Quick Path Shortcuts</label>
                         <div className="grid grid-cols-1 gap-1.5">
+                            {/* Pinned Custom Path */}
+                            {config.custom_import_path && (
+                                <button
+                                    onClick={() => copyPath(config.custom_import_path)}
+                                    className="w-full flex items-center justify-between gap-3 bg-blue-950/20 hover:bg-blue-900/30 border border-blue-500/30 hover:border-blue-500 rounded-lg px-3 py-2 transition-all group scale-[1.02] mb-1">
+                                    <div className="flex flex-col items-start min-w-0">
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] font-black text-blue-400">PINNED PATH</span>
+                                            <div className="w-1 h-1 bg-blue-400 rounded-full animate-pulse" />
+                                        </div>
+                                        <span className="text-[9px] font-mono text-gray-400 truncate w-full">{config.custom_import_path}</span>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded transition-all ${copiedPath === config.custom_import_path ? 'bg-green-500 text-white opacity-100' : 'text-blue-500 bg-blue-500/10 opacity-0 group-hover:opacity-100'}`}>
+                                        {copiedPath === config.custom_import_path ? 'COPIED!' : 'COPY'}
+                                    </span>
+                                </button>
+                            )}
+
                             {COMMON_LOG_PATHS.map(item => (
                                 <button key={item.name}
                                     onClick={() => copyPath(item.path)}
@@ -226,6 +307,23 @@ export default function ImportDialog({ onClose }) {
                                 </button>
                             ))}
                         </div>
+
+                        {/* Pin Input */}
+                        <div className="mt-3 flex gap-2">
+                            <input
+                                type="text"
+                                value={pinInput}
+                                onChange={(e) => setPinInput(e.target.value)}
+                                placeholder="Paste your custom log folder path here..."
+                                className="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-3 py-2 text-[10px] font-mono text-gray-300 placeholder:text-gray-600 focus:border-blue-500/50 outline-none transition-all"
+                            />
+                            <button
+                                onClick={handlePinCustomPath}
+                                className="bg-gray-800 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-[10px] font-black tracking-widest uppercase transition-all whitespace-nowrap"
+                            >
+                                PIN PATH
+                            </button>
+                        </div>
                     </div>
 
                     {/* Drop Zone */}
@@ -234,7 +332,7 @@ export default function ImportDialog({ onClose }) {
                         onDragOver={handleDrag}
                         onDragLeave={handleDrag}
                         onDrop={handleDrop}
-                        onClick={() => !processing && fileInputRef.current?.click()}
+                        onClick={() => !processing && triggerMainImport()}
                         className={`relative group h-40 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer overflow-hidden ${dragActive ? 'border-blue-500 bg-blue-500/10' :
                             processing ? 'border-gray-700 bg-gray-900/50 cursor-wait' :
                                 'border-gray-800 hover:border-gray-600 bg-gray-950/50'
@@ -263,7 +361,16 @@ export default function ImportDialog({ onClose }) {
                                 </div>
                             </>
                         )}
-                        <input ref={fileInputRef} type="file" multiple accept=".gz,.log" className="hidden" onChange={handleFileChange} />
+                        <input
+                            id="import-log-input"
+                            name="import-log-selection"
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept=".gz,.log"
+                            className="hidden"
+                            onChange={handleFileChange}
+                        />
                     </div>
 
                     {/* Stats Summary */}
@@ -301,21 +408,31 @@ export default function ImportDialog({ onClose }) {
                             className="text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-widest px-2.5 py-2 transition-colors">
                             Backup
                         </button>
-                        <button onClick={() => backupInputRef.current?.click()}
+                        <button onClick={triggerBackupRestore}
                             className="text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-widest px-2.5 py-2 transition-colors">
                             Restore
                         </button>
-                        <input ref={backupInputRef} type="file" accept=".json" className="hidden" onChange={handleBackupImport} />
+                        <input
+                            id="restore-backup-input"
+                            name="restore-backup-selection"
+                            ref={backupInputRef}
+                            type="file"
+                            accept=".json"
+                            className="hidden"
+                            onChange={handleBackupImport}
+                        />
                         <button onClick={handleClear}
                             className="text-[10px] font-black text-red-900 hover:text-red-500 uppercase tracking-widest px-2.5 py-2 transition-colors">
                             Clear Data
                         </button>
                     </div>
 
-                    <button onClick={onClose}
-                        className="bg-gray-800 hover:bg-gray-700 text-white px-6 py-2 rounded-lg text-xs font-black tracking-widest uppercase transition-all shadow-lg active:scale-95">
-                        DONE
-                    </button>
+                    <div className="flex items-center gap-4">
+                        <button onClick={onClose}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2 rounded-lg text-xs font-black tracking-widest uppercase transition-all shadow-lg active:scale-95">
+                            DONE
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

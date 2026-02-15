@@ -21,6 +21,7 @@ const DEFAULT_CONFIG = {
     index_run_max_expl: 10,
     index_run_max_time: 300,
     ui_scale: 100,
+    custom_import_path: '',
 };
 
 const CONFIG_KEY = 'mcsr_config';
