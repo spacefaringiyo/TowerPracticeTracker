@@ -43,6 +43,8 @@ export default function SessionAnalytics({ refreshKey }) {
     const [sortMode, setSortMode] = useState('newest');
     const [groupSize, setGroupSize] = useState(1);
     const [showDist, setShowDist] = useState(config.show_dist_chart || false);
+    const [showCareerDist, setShowCareerDist] = useState(config.show_career_dist || false);
+    const [careerMaxExpl, setCareerMaxExpl] = useState(config.career_max_expl || 10);
 
     const [showIndexChart, setShowIndexChart] = useState(config.show_index_chart || false);
     const [indexChartMode, setIndexChartMode] = useState(config.index_chart_mode || 'session');
@@ -146,9 +148,11 @@ export default function SessionAnalytics({ refreshKey }) {
 
         const distribution = {};
         Object.keys(counts).forEach(expl => {
-            distribution[expl] = (counts[expl] / successes.length) * 100;
+            distribution[expl] = {
+                percentage: (counts[expl] / successes.length) * 100,
+                runCount: counts[expl]
+            };
         });
-
         return distribution;
     }, [sessionRuns]);
 
@@ -176,6 +180,26 @@ export default function SessionAnalytics({ refreshKey }) {
 
         return { total, wins, fails, rate, deaths, durationSec, playDensity, bestExpl, avgExpl, bestTime, avgTime };
     }, [sessionRuns, threshold]);
+
+    const careerDistData = useMemo(() => {
+        const successes = getHistoryRuns();
+        if (successes.length === 0) return {};
+        const counts = {};
+        successes.forEach(r => {
+            const expl = r[2] || 0;
+            if (expl > 0 && expl <= careerMaxExpl) {
+                counts[expl] = (counts[expl] || 0) + 1;
+            }
+        });
+        const distribution = {};
+        Object.keys(counts).forEach(expl => {
+            distribution[expl] = {
+                percentage: (counts[expl] / successes.length) * 100,
+                runCount: counts[expl]
+            };
+        });
+        return distribution;
+    }, [refreshKey, careerMaxExpl]);
 
     const indexChartData = useMemo(() => {
         if (!showIndexChart) return [];
@@ -251,7 +275,20 @@ export default function SessionAnalytics({ refreshKey }) {
                             title="Toggle Performance Chart"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={() => {
+                                const next = !showCareerDist;
+                                setShowCareerDist(next);
+                                saveConfig({ show_career_dist: next });
+                            }}
+                            className={`p-1.5 rounded-lg transition-all ${showCareerDist ? 'bg-cyan-950/40 text-cyan-400 ring-1 ring-cyan-500/50' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
+                            title="Toggle Career Distribution"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </button>
                     </div>
@@ -272,95 +309,122 @@ export default function SessionAnalytics({ refreshKey }) {
                     </div>
                 </div>
 
-                {showIndexChart && (
-                    <div className="mb-4 shrink-0 transition-all animate-in fade-in slide-in-from-top-2">
-                        <div className="flex items-center gap-2 mb-2 flex-wrap bg-gray-900/40 p-2 rounded-lg border border-gray-800/50">
-                            <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase">
-                                <button onClick={() => { setIndexChartMode('session'); saveConfig({ index_chart_mode: 'session' }); }}
-                                    className={`px-3 py-1.5 transition-colors ${indexChartMode === 'session' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Session</button>
-                                <button onClick={() => { setIndexChartMode('run'); saveConfig({ index_chart_mode: 'run' }); }}
-                                    className={`px-3 py-1.5 transition-colors ${indexChartMode === 'run' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Runs</button>
-                                <button onClick={() => { setIndexChartMode('split'); saveConfig({ index_chart_mode: 'split' }); }}
-                                    className={`px-3 py-1.5 transition-colors ${indexChartMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Split</button>
-                            </div>
+                {(showIndexChart || showCareerDist) && (
+                    <div className="mb-4 shrink-0 flex gap-3 transition-all animate-in fade-in slide-in-from-top-2">
+                        {showIndexChart && (
+                            <div className="flex-1 min-w-0 flex flex-col">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap bg-gray-900/40 p-2 rounded-lg border border-gray-800/50">
+                                    <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase transition-all shadow-sm">
+                                        <button onClick={() => { setIndexChartMode('session'); saveConfig({ index_chart_mode: 'session' }); }}
+                                            className={`px-3 py-1.5 transition-colors ${indexChartMode === 'session' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Session</button>
+                                        <button onClick={() => { setIndexChartMode('run'); saveConfig({ index_chart_mode: 'run' }); }}
+                                            className={`px-3 py-1.5 transition-colors ${indexChartMode === 'run' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Runs</button>
+                                        <button onClick={() => { setIndexChartMode('split'); saveConfig({ index_chart_mode: 'split' }); }}
+                                            className={`px-3 py-1.5 transition-colors ${indexChartMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Split</button>
+                                    </div>
 
-                            <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase">
-                                <button onClick={() => { setIndexChartMetric('expl'); saveConfig({ index_chart_metric: 'expl' }); }}
-                                    className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'expl' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>
-                                <button onClick={() => { setIndexChartMetric('time'); saveConfig({ index_chart_metric: 'time' }); }}
-                                    className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'time' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Time</button>
-                            </div>
+                                    <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] border border-gray-700/50 font-bold uppercase transition-all shadow-sm">
+                                        <button onClick={() => { setIndexChartMetric('expl'); saveConfig({ index_chart_metric: 'expl' }); }}
+                                            className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'expl' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>
+                                        <button onClick={() => { setIndexChartMetric('time'); saveConfig({ index_chart_metric: 'time' }); }}
+                                            className={`px-3 py-1.5 transition-colors ${indexChartMetric === 'time' ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Time</button>
+                                    </div>
 
-                            <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
-                                <span className="text-[9px] text-gray-500 uppercase font-bold">Group</span>
-                                <input type="number" min="1" value={activeIndexChartGroup}
-                                    onChange={e => {
-                                        const val = Math.max(1, parseInt(e.target.value) || 1);
-                                        if (indexChartMode === 'session') { setIndexSessionGroup(val); saveConfig({ index_session_group: val }); }
-                                        else if (indexChartMode === 'run') { setIndexRunGroup(val); saveConfig({ index_run_group: val }); }
-                                        else if (indexChartMode === 'split') { setIndexSplitGroup(val); saveConfig({ index_split_group: val }); }
-                                    }}
-                                    className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
-                            </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
+                                        <span className="text-[9px] text-gray-500 uppercase font-bold">Group</span>
+                                        <input type="number" min="1" value={activeIndexChartGroup}
+                                            onChange={e => {
+                                                const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                if (indexChartMode === 'session') { setIndexSessionGroup(val); saveConfig({ index_session_group: val }); }
+                                                else if (indexChartMode === 'run') { setIndexRunGroup(val); saveConfig({ index_run_group: val }); }
+                                                else if (indexChartMode === 'split') { setIndexSplitGroup(val); saveConfig({ index_split_group: val }); }
+                                            }}
+                                            className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
+                                    </div>
 
-                            {(indexChartMode === 'session' || indexChartMode === 'split') && (
-                                <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
-                                    <span className="text-[9px] text-gray-500 uppercase font-bold">Min Runs</span>
-                                    <input type="number" min="1" value={indexChartMode === 'session' ? indexSessionMinRuns : indexSplitMinRuns}
-                                        onChange={e => {
-                                            const val = Math.max(1, parseInt(e.target.value) || 1);
-                                            if (indexChartMode === 'session') { setIndexSessionMinRuns(val); saveConfig({ index_session_min_runs: val }); }
-                                            else { setIndexSplitMinRuns(val); saveConfig({ index_split_min_runs: val }); }
-                                        }}
-                                        className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
-                                </div>
-                            )}
-
-                            {indexChartMode === 'run' && (
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => {
-                                            const next = !runFilterAnomalies;
-                                            setRunFilterAnomalies(next);
-                                            saveConfig({ index_run_filter_anomalies: next });
-                                        }}
-                                        className={`px-2 py-1 rounded text-[9px] font-bold uppercase transition-all ${runFilterAnomalies ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-500 hover:text-gray-300'}`}
-                                        title="Filter Outliers"
-                                    >
-                                        Filter
-                                    </button>
-                                    {runFilterAnomalies && (
-                                        <div className="flex items-center gap-1.5 bg-gray-800 border border-orange-500/30 rounded px-2 py-1.5 h-[27px] animate-in fade-in zoom-in-95 duration-200">
-                                            <span className="text-[9px] text-orange-400 uppercase font-bold text-center">
-                                                Max {indexChartMetric === 'expl' ? 'Expl' : 'Sec'}
-                                            </span>
-                                            <input type="number" min="1"
-                                                value={indexChartMetric === 'expl' ? runMaxExpl : runMaxTime}
+                                    {(indexChartMode === 'session' || indexChartMode === 'split') && (
+                                        <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
+                                            <span className="text-[9px] text-gray-500 uppercase font-bold">Min Runs</span>
+                                            <input type="number" min="1" value={indexChartMode === 'session' ? indexSessionMinRuns : indexSplitMinRuns}
                                                 onChange={e => {
                                                     const val = Math.max(1, parseInt(e.target.value) || 1);
-                                                    if (indexChartMetric === 'expl') { setRunMaxExpl(val); saveConfig({ index_run_max_expl: val }); }
-                                                    else { setRunMaxTime(val); saveConfig({ index_run_max_time: val }); }
+                                                    if (indexChartMode === 'session') { setIndexSessionMinRuns(val); saveConfig({ index_session_min_runs: val }); }
+                                                    else { setIndexSplitMinRuns(val); saveConfig({ index_split_min_runs: val }); }
                                                 }}
                                                 className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
                                         </div>
                                     )}
-                                </div>
-                            )}
 
-                            <div className="flex-1" />
-                            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pr-1">
-                                Progress Overview
+                                    {indexChartMode === 'run' && (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    const next = !runFilterAnomalies;
+                                                    setRunFilterAnomalies(next);
+                                                    saveConfig({ index_run_filter_anomalies: next });
+                                                }}
+                                                className={`px-2 py-1 rounded text-[9px] font-bold uppercase transition-all ${runFilterAnomalies ? 'bg-orange-600 text-white' : 'bg-gray-800 text-gray-500 hover:text-gray-300'}`}
+                                                title="Filter Outliers"
+                                            >
+                                                Filter
+                                            </button>
+                                            {runFilterAnomalies && (
+                                                <div className="flex items-center gap-1.5 bg-gray-800 border border-orange-500/30 rounded px-2 py-1.5 h-[27px] animate-in fade-in zoom-in-95 duration-200">
+                                                    <span className="text-[9px] text-orange-400 uppercase font-bold text-center">
+                                                        Max {indexChartMetric === 'expl' ? 'Expl' : 'Sec'}
+                                                    </span>
+                                                    <input type="number" min="1"
+                                                        value={indexChartMetric === 'expl' ? runMaxExpl : runMaxTime}
+                                                        onChange={e => {
+                                                            const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                            if (indexChartMetric === 'expl') { setRunMaxExpl(val); saveConfig({ index_run_max_expl: val }); }
+                                                            else { setRunMaxTime(val); saveConfig({ index_run_max_time: val }); }
+                                                        }}
+                                                        className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="flex-1" />
+                                    <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider pr-1">
+                                        Progress
+                                    </div>
+                                </div>
+                                <div className="h-[150px]">
+                                    <RunChart
+                                        yValues={indexChartData}
+                                        chartColor={indexChartMetric === 'expl' ? '#22d3ee' : '#a78bfa'}
+                                        title={indexChartMetric === 'expl' ? (indexChartMode === 'run' ? 'Expl' : 'Avg Expl') : (indexChartMode === 'run' ? 'Time' : 'Avg Time')}
+                                        groupSize={activeIndexChartGroup}
+                                        showTrend={true}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                        <div className="h-[150px]">
-                            <RunChart
-                                yValues={indexChartData}
-                                chartColor={indexChartMetric === 'expl' ? '#22d3ee' : '#a78bfa'}
-                                title={indexChartMetric === 'expl' ? (indexChartMode === 'run' ? 'Expl' : 'Avg Expl') : (indexChartMode === 'run' ? 'Time' : 'Avg Time')}
-                                groupSize={activeIndexChartGroup}
-                                showTrend={true}
-                            />
-                        </div>
+                        )}
+
+                        {showCareerDist && (
+                            <div className={`${showIndexChart ? 'w-[320px]' : 'flex-1'} min-w-0 flex flex-col`}>
+                                <div className="flex items-center gap-2 mb-2 flex-wrap bg-gray-900/40 p-2 rounded-lg border border-gray-800/50">
+                                    <div className="flex-1 text-[10px] text-cyan-400 font-black uppercase tracking-widest pl-1">
+                                        Career Dist
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 h-[27px]">
+                                        <span className="text-[9px] text-gray-500 uppercase font-bold">Max Expl</span>
+                                        <input type="number" min="1" value={careerMaxExpl}
+                                            onChange={e => {
+                                                const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                setCareerMaxExpl(val);
+                                                saveConfig({ career_max_expl: val });
+                                            }}
+                                            className="w-8 bg-transparent border-none text-[10px] text-white text-center focus:outline-none font-bold" />
+                                    </div>
+                                </div>
+                                <div className="h-[150px]">
+                                    <DistChart data={careerDistData} />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -397,14 +461,14 @@ export default function SessionAnalytics({ refreshKey }) {
                                     </div>
 
                                     <div className="flex items-center gap-6 shrink-0 ml-4">
-                                        <div className="flex flex-col w-12 text-center">
+                                        <div className="flex flex-col w-20 items-center text-center">
                                             <div className="text-[13px] text-gray-200 font-medium tracking-tight">{row.count}</div>
                                             <div className="text-[10px] text-gray-500 uppercase font-medium">Runs</div>
                                         </div>
 
-                                        <div className="flex flex-col min-w-[75px]">
+                                        <div className="flex flex-col min-w-[95px] items-center text-center">
                                             <div className="text-[13px] text-gray-200 font-medium whitespace-nowrap">{formatDuration(row.duration_sec)}</div>
-                                            <div className="text-[10px] text-gray-500 font-medium uppercase flex items-center gap-1 group/density cursor-help"
+                                            <div className="text-[10px] text-gray-500 font-medium uppercase flex items-center justify-center gap-1 group/density cursor-help"
                                                 title={`Play Density: ${density}%\nPercentage of run time vs session duration.\nHigher % means more active practice and less idle time.`}>
                                                 Time
                                                 {row.play_time_sec > 0 && (
@@ -413,7 +477,7 @@ export default function SessionAnalytics({ refreshKey }) {
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-col min-w-[65px]">
+                                        <div className="flex flex-col min-w-[90px] items-center text-center">
                                             <div className={`text-[13px] font-bold ${row.success_count > 0 ? 'text-green-400' : 'text-gray-400'}`}>
                                                 {winRate}%
                                             </div>
@@ -422,26 +486,30 @@ export default function SessionAnalytics({ refreshKey }) {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-1 pt-2 border-t border-gray-700/20">
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase truncate">Best/Avg Expl</span>
-                                        <span className={`text-[11px] font-bold ${row.best_expl ? 'text-cyan-400' : 'text-gray-500'}`}>
-                                            {row.best_expl || '-'} / {row.avg_expl ? row.avg_expl.toFixed(1) : '-'}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase truncate">Best/Avg Time</span>
-                                        <span className={`text-[11px] font-bold ${row.best_time ? 'text-yellow-400' : 'text-gray-500'}`}>
-                                            {row.best_time ? `${row.best_time.toFixed(1)}s` : '-'} / {row.avg_time ? `${row.avg_time.toFixed(1)}s` : '-'}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] text-gray-500 uppercase">Success / Fail</span>
-                                        <span className="text-[11px] font-bold text-gray-300">
-                                            <span className="text-green-400/90">{row.success_count}</span>
-                                            <span className="mx-1 text-gray-600">/</span>
-                                            <span className="text-red-400/90">{row.count - row.success_count}</span>
-                                        </span>
+                                <div className="flex items-center gap-4 min-w-0 pt-2 border-t border-gray-700/20">
+                                    <div className="flex items-center gap-3 min-w-0 shrink-0 lg:w-[284px] w-[224px]" />
+
+                                    <div className="flex items-center gap-6 shrink-0 ml-4">
+                                        <div className="flex flex-col w-20 items-center text-center">
+                                            <span className="text-[10px] text-gray-500 uppercase truncate">Best/Avg Expl</span>
+                                            <span className={`text-[11px] font-bold ${row.best_expl ? 'text-cyan-400' : 'text-gray-500'}`}>
+                                                {row.best_expl || '-'} / {row.avg_expl ? row.avg_expl.toFixed(1) : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col min-w-[95px] items-center text-center">
+                                            <span className="text-[10px] text-gray-500 uppercase truncate">Best/Avg Time</span>
+                                            <span className={`text-[11px] font-bold ${row.best_time ? 'text-yellow-400' : 'text-gray-500'}`}>
+                                                {row.best_time ? `${row.best_time.toFixed(1)}s` : '-'} / {row.avg_time ? `${row.avg_time.toFixed(1)}s` : '-'}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col min-w-[90px] items-center text-center">
+                                            <span className="text-[10px] text-gray-500 uppercase">Success / Fail</span>
+                                            <span className="text-[11px] font-bold text-gray-300">
+                                                <span className="text-green-400/90">{row.success_count}</span>
+                                                <span className="mx-1 text-gray-600">/</span>
+                                                <span className="text-red-400/90">{row.count - row.success_count}</span>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

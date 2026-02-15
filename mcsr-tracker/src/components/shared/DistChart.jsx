@@ -8,11 +8,19 @@ export default function DistChart({ data, chartColor = '#22d3ee' }) {
         // Sort keys numerically
         return Object.keys(data)
             .sort((a, b) => Number(a) - Number(b))
-            .map(count => ({
-                name: `${count}`,
-                percentage: Number(data[count].toFixed(1)),
-                count: count
-            }));
+            .map(count => {
+                const entry = data[count];
+                const isObj = entry !== null && typeof entry === 'object';
+                const percentage = isObj ? (entry.percentage || 0) : (entry || 0);
+                const runCount = isObj ? entry.runCount : null;
+
+                return {
+                    name: `${count}`,
+                    percentage: Number(percentage.toFixed(1)),
+                    runCount: runCount,
+                    expl: count
+                };
+            });
     }, [data]);
 
     if (formattedData.length === 0) {
@@ -41,9 +49,13 @@ export default function DistChart({ data, chartColor = '#22d3ee' }) {
                     />
                     <Tooltip
                         cursor={{ fill: 'transparent' }}
-                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '11px' }}
+                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', fontSize: '11px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         itemStyle={{ color: chartColor }}
-                        formatter={(val) => [`${val}%`, 'Distribution']}
+                        formatter={(val, name, props) => {
+                            const { runCount } = props.payload;
+                            const label = runCount !== null ? `${runCount} Runs` : 'Distribution';
+                            return [`${val}%`, label];
+                        }}
                     />
                     <Bar dataKey="percentage" radius={[4, 4, 0, 0]}>
                         {formattedData.map((entry, index) => (

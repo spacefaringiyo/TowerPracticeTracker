@@ -97,7 +97,10 @@ export default function HeightAnalytics({ refreshKey }) {
         });
         const distribution = {};
         Object.keys(counts).forEach(expl => {
-            distribution[expl] = (counts[expl] / successes.length) * 100;
+            distribution[expl] = {
+                percentage: (counts[expl] / successes.length) * 100,
+                runCount: counts[expl]
+            };
         });
         return distribution;
     }, [allRuns, activeTypes, activeTowers]);
