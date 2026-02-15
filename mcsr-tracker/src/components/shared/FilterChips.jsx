@@ -8,9 +8,9 @@ export default function FilterChips({ items, activeSet, onToggle, label = '' }) 
                     <button
                         key={item}
                         onClick={() => onToggle(item)}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${active
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-200'
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-colors ${active
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-200'
                             }`}
                     >
                         {item}

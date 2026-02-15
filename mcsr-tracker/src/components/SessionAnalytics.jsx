@@ -568,16 +568,16 @@ export default function SessionAnalytics({ refreshKey }) {
             </div>
 
             <div className="flex-1 overflow-auto min-h-0 custom-scrollbar">
-                <table className="w-full text-xs">
+                <table className="text-xs border-separate border-spacing-0">
                     <thead className="sticky top-0 bg-gray-900 border-b border-gray-800 shadow-sm z-10">
                         <tr className="text-gray-500 text-left uppercase tracking-wider font-bold">
-                            <th className="py-2.5 px-2">Expl</th>
-                            <th className="py-2.5 px-2">Time</th>
-                            <th className="py-2.5 px-2">Bed</th>
-                            <th className="py-2.5 px-2">Tower</th>
-                            <th className="py-2.5 px-2">Type</th>
-                            <th className="py-2.5 px-2 text-center w-12">Y</th>
-                            <th className="py-2.5 px-2 text-right">Date</th>
+                            <th className="py-2.5 px-2 w-[80px]">Expl</th>
+                            <th className="py-2.5 px-2 w-[100px]">Time</th>
+                            <th className="py-2.5 px-2 w-[100px]">Bed</th>
+                            <th className="py-2.5 px-2 w-[120px]">Tower</th>
+                            <th className="py-2.5 px-2 w-[200px]">Type</th>
+                            <th className="py-2.5 px-2 text-center w-[60px]">Y</th>
+                            <th className="py-2.5 px-2 text-right w-[120px]">Date</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800/20">
@@ -592,7 +592,7 @@ export default function SessionAnalytics({ refreshKey }) {
                                         {run[C.bed_time] ? `${run[C.bed_time].toFixed(2)}s` : '-'}
                                     </td>
                                     <td className="py-2 px-2 text-gray-400">{run[C.tower] || '-'}</td>
-                                    <td className="py-2 px-2 text-gray-400 capitalize">{run[C.type] !== 'Unknown' ? run[C.type].toLowerCase() : '-'}</td>
+                                    <td className="py-2 px-2 text-gray-400">{run[C.type] !== 'Unknown' ? run[C.type] : '-'}</td>
                                     <td className="py-2 px-2 text-center font-mono text-gray-500 group-hover:text-gray-300 transition-colors">{run[C.height] > 0 ? run[C.height] : '-'}</td>
                                     <td className="py-2 px-2 text-right text-gray-500 font-mono text-[10px]">{formatDate(run[C.timestamp])}</td>
                                 </tr>

@@ -163,8 +163,8 @@ class RunParser {
         this.buffer.session_id = this.sessionId;
         this.buffer.split_tag = this.currentSplitTag;
         this.buffer.bed_time = this.bedTime;
-        saveRun(this.buffer);
-        if (this.callback) this.callback();
+        const saved = saveRun(this.buffer);
+        if (this.callback) this.callback(saved ? 'new' : 'duplicate');
         this.resetState();
     }
 
@@ -183,8 +183,8 @@ class RunParser {
             session_id: this.sessionId,
             split_tag: this.currentSplitTag,
         };
-        saveRun(failData);
-        if (this.callback) this.callback();
+        const saved = saveRun(failData);
+        if (this.callback) this.callback(saved ? 'new_fail' : 'duplicate_fail');
         this.resetState();
     }
 
