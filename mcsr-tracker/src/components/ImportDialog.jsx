@@ -164,7 +164,7 @@ export default function ImportDialog({ onClose }) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `mcsr_tracker_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = `tower_practice_tracker_export_${new Date().toISOString().slice(0, 10)}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -175,7 +175,7 @@ export default function ImportDialog({ onClose }) {
         }
     }, []);
 
-    const handleBackupImport = useCallback(async (e) => {
+    const handleDataImport = useCallback(async (e) => {
         const file = e.type === 'change' ? e.target.files?.[0] : e;
         if (!file) return;
         setProcessing(true);
@@ -183,30 +183,30 @@ export default function ImportDialog({ onClose }) {
             const text = await file.text();
             const count = importJson(text);
             await saveToStorage();
-            setStatus(`✅ Backup restored! ${count} runs imported.`);
+            setStatus(`✅ Data imported! ${count} runs added.`);
         } catch (err) {
-            setStatus(`Backup error: ${err.message}`);
+            setStatus(`Import error: ${err.message}`);
         }
         setProcessing(false);
         if (backupInputRef.current) backupInputRef.current.value = '';
     }, []);
 
-    const triggerBackupRestore = async () => {
+    const triggerDataImport = async () => {
         if (window.showOpenFilePicker) {
             try {
                 const [handle] = await window.showOpenFilePicker({
-                    id: 'restore-backups',
+                    id: 'import-processed-data',
                     startIn: 'downloads',
                     multiple: false,
                     types: [
                         {
-                            description: 'MCSR Tracker Backup',
+                            description: 'Tracker Export File',
                             accept: { 'application/json': ['.json'] }
                         }
                     ]
                 });
                 const file = await handle.getFile();
-                handleBackupImport(file);
+                handleDataImport(file);
                 return;
             } catch (err) {
                 if (err.name === 'AbortError') return;
@@ -406,20 +406,20 @@ export default function ImportDialog({ onClose }) {
                     <div className="flex gap-1">
                         <button onClick={handleExport}
                             className="text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-widest px-2.5 py-2 transition-colors">
-                            Backup
+                            Export Data
                         </button>
-                        <button onClick={triggerBackupRestore}
+                        <button onClick={triggerDataImport}
                             className="text-[10px] font-black text-gray-500 hover:text-white uppercase tracking-widest px-2.5 py-2 transition-colors">
-                            Restore
+                            Import Data
                         </button>
                         <input
-                            id="restore-backup-input"
-                            name="restore-backup-selection"
+                            id="import-processed-input"
+                            name="import-processed-selection"
                             ref={backupInputRef}
                             type="file"
                             accept=".json"
                             className="hidden"
-                            onChange={handleBackupImport}
+                            onChange={handleDataImport}
                         />
                         <button onClick={handleClear}
                             className="text-[10px] font-black text-red-900 hover:text-red-500 uppercase tracking-widest px-2.5 py-2 transition-colors">
