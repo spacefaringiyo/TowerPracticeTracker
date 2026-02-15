@@ -468,11 +468,12 @@ export default function SessionAnalytics({ refreshKey }) {
 
                                         <div className="flex flex-col min-w-[95px] items-center text-center">
                                             <div className="text-[13px] text-gray-200 font-medium whitespace-nowrap">{formatDuration(row.duration_sec)}</div>
-                                            <div className="text-[10px] text-gray-500 font-medium uppercase flex items-center justify-center gap-1 group/density cursor-help"
+                                            <div className="text-[10px] font-medium uppercase flex items-center justify-center gap-1 group/density cursor-help"
                                                 title={`Play Density: ${density}%\nPercentage of run time vs session duration.\nHigher % means more active practice and less idle time.`}>
-                                                Time
-                                                {row.play_time_sec > 0 && (
-                                                    <span className="text-blue-500/70">• {density}%</span>
+                                                {row.play_time_sec > 0 ? (
+                                                    <span className="text-blue-400/80">Density {density}%</span>
+                                                ) : (
+                                                    <span className="text-gray-500">Time</span>
                                                 )}
                                             </div>
                                         </div>
