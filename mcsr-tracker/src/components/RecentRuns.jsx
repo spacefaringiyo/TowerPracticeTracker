@@ -21,6 +21,13 @@ function formatDate(ts) {
     } catch { return ts || ''; }
 }
 
+function abbreviateFail(reason) {
+    if (!reason) return 'Fail';
+    if (reason === 'World Load') return 'WL';
+    if (reason.startsWith('Reset')) return 'Rst';
+    return reason;
+}
+
 export default function RecentRuns({ refreshKey, onRunClick, width }) {
     const cfg = loadConfig();
     const [chartMode, setChartMode] = useState(cfg.chart_mode || 'expl');
@@ -80,12 +87,23 @@ export default function RecentRuns({ refreshKey, onRunClick, width }) {
                 <h2 className="text-lg font-bold whitespace-nowrap">Recent History</h2>
                 <div className="flex-1" />
                 <button onClick={toggleTrend} title="Toggle Trend Line"
-                    className={`p-1.5 rounded transition-colors ${showTrend ? 'text-cyan-400' : 'text-gray-400 hover:text-white'}`}>
-                    📈
+                    className={`p-2 rounded transition-all border ${showTrend ? 'bg-cyan-600 border-cyan-400 text-white shadow-lg shadow-cyan-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
                 </button>
-                <button onClick={toggleHideFails} title="Hide Fails"
-                    className={`p-1.5 rounded transition-colors ${hideFails ? 'text-red-400' : 'text-gray-400 hover:text-white'}`}>
-                    {hideFails ? '🔍' : '👁️'}
+                <button onClick={toggleHideFails} title={hideFails ? "Showing Wins Only" : "Showing All Runs"}
+                    className={`p-2 rounded transition-all border ${hideFails ? 'bg-red-700 border-red-500 text-white shadow-lg shadow-red-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
+                    {hideFails ? (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.04m5.882-5.903A9.972 9.972 0 0112 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-1.124 0-2.193-.182-3.192-.518M11.332 11.332L15 15M9 15L12.668 11.332" />
+                        </svg>
+                    )}
                 </button>
                 <input
                     type="number" min="1" max="50" value={groupSize}
@@ -121,7 +139,7 @@ export default function RecentRuns({ refreshKey, onRunClick, width }) {
                         <tr className="text-gray-400 text-left">
                             <th className="py-1.5 px-1 font-medium">Expl</th>
                             <th className="py-1.5 px-1 font-medium">Time</th>
-                            <th className="py-1.5 px-1 font-medium">Bed</th>
+                            {/* <th className="py-1.5 px-1 font-medium">Bed</th> */}
                             <th className="py-1.5 px-1 font-medium">Tower</th>
                             <th className="py-1.5 px-1 font-medium">Type</th>
                             <th className="py-1.5 px-1 font-medium">Y</th>
@@ -140,7 +158,7 @@ export default function RecentRuns({ refreshKey, onRunClick, width }) {
                             if (!isSuccess) rowColor = 'text-red-400';
                             else if (isPB) rowColor = 'text-yellow-400';
 
-                            const expl = isSuccess ? run[C.explosives] : (run[C.fail_reason] || 'Fail');
+                            const expl = isSuccess ? run[C.explosives] : abbreviateFail(run[C.fail_reason]);
                             const timeVal = run[C.time_sec] || 0;
                             const time = isSuccess ? `${timeVal.toFixed(2)}s` : `${timeVal.toFixed(1)}s`;
                             const bedVal = run[C.bed_time];
@@ -155,9 +173,9 @@ export default function RecentRuns({ refreshKey, onRunClick, width }) {
                                     onClick={() => tower !== 'Unknown' && onRunClick?.(tower, rType)}>
                                     <td className="py-1.5 px-1 font-semibold whitespace-nowrap">{expl}</td>
                                     <td className="py-1.5 px-1 whitespace-nowrap">{time}</td>
-                                    <td className={`py-1.5 px-1 whitespace-nowrap ${isSuccess && run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>{bed}</td>
-                                    <td className="py-1.5 px-1 whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">{towerDisplay}</td>
-                                    <td className="py-1.5 px-1 whitespace-nowrap overflow-hidden text-ellipsis max-w-[60px]">{typeDisplay}</td>
+                                    {/* <td className={`py-1.5 px-1 whitespace-nowrap ${isSuccess && run[C.bed_time] ? 'text-orange-300' : 'text-gray-500'}`}>{bed}</td> */}
+                                    <td className="py-1.5 px-1 whitespace-nowrap">{towerDisplay}</td>
+                                    <td className="py-1.5 px-1 whitespace-nowrap">{typeDisplay}</td>
                                     <td className="py-1.5 px-1 whitespace-nowrap">{height}</td>
                                     <td className="py-1.5 px-1 whitespace-nowrap text-gray-500">{formatDate(run[C.timestamp])}</td>
                                 </tr>

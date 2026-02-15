@@ -9,6 +9,7 @@ import TowerAnalytics from './components/TowerAnalytics';
 import SessionAnalytics from './components/SessionAnalytics';
 import HeightAnalytics from './components/HeightAnalytics';
 import ImportDialog from './components/ImportDialog';
+import CalendarAnalytics from './components/CalendarAnalytics';
 import SettingsDialog from './components/SettingsDialog';
 import CreditsDialog from './components/CreditsDialog';
 
@@ -16,13 +17,14 @@ const TABS = [
     { name: 'Session Analytics', icon: '📊' },
     { name: 'Tower Analytics', icon: '🏗️' },
     { name: 'Height Analytics', icon: '📏' },
+    { name: 'Calendar', icon: '📅' },
 ];
 
 export default function App() {
     const [dbReady, setDbReady] = useState(false);
     const [loading, setLoading] = useState(true);
     const [refreshKey, setRefreshKey] = useState(0);
-    const [activeTab, setActiveTab] = useState(0);
+    const [activeTab, setActiveTab] = useState(0); // Back to Session Analytics as default
     const [leftPanelWidth, setLeftPanelWidth] = useState(630);
     const [uiScale, setUiScale] = useState(100);
 
@@ -59,7 +61,7 @@ export default function App() {
     const handleRunClick = useCallback((towerName, runType) => {
         const cfg = loadConfig();
         const mode = cfg.navigation_mode || 'default';
-        setActiveTab(1); // Switch to Tower Analytics tab
+        setActiveTab(1); // Switch to Tower Analytics tab (was 2)
         setTowerDetailRequest({
             tower: towerName,
             filterType: mode === 'filter' ? runType : null,
@@ -185,6 +187,9 @@ export default function App() {
                                 </div>
                                 <div className={`absolute inset-0 ${activeTab === 2 ? 'z-10' : 'z-0 invisible'}`}>
                                     <HeightAnalytics refreshKey={refreshKey} isActive={activeTab === 2} />
+                                </div>
+                                <div className={`absolute inset-0 ${activeTab === 3 ? 'z-10' : 'z-0 invisible'}`}>
+                                    <CalendarAnalytics refreshKey={refreshKey} isActive={activeTab === 3} />
                                 </div>
                             </>
                         )}

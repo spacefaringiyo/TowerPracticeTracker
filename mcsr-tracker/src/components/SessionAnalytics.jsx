@@ -34,7 +34,7 @@ export default function SessionAnalytics({ refreshKey }) {
 
     const [viewMode, setViewMode] = useState('list');
     const [currentIndex, setCurrentIndex] = useState(-1);
-    const [showSplitsOnly, setShowSplitsOnly] = useState(false);
+    const [historyMode, setHistoryMode] = useState(config.history_mode || 'session');
     const [chartMode, setChartMode] = useState('expl');
     const [showTrend, setShowTrend] = useState(false);
     const [hideFails, setHideFails] = useState(false);
@@ -60,11 +60,16 @@ export default function SessionAnalytics({ refreshKey }) {
     const [runMaxExpl, setRunMaxExpl] = useState(config.index_run_max_expl || 10);
     const [runMaxTime, setRunMaxTime] = useState(config.index_run_max_time || 300);
 
-    const sessionList = useMemo(() => getSessionIndex(threshold), [refreshKey, threshold]);
+    const sessionList = useMemo(() => {
+        const raw = getSessionIndex(threshold);
+        return raw.filter(s => {
+            if (historyMode === 'split') return s.type === 'split';
+            return s.type === 'file';
+        });
+    }, [refreshKey, threshold, historyMode]);
 
     const filteredList = useMemo(() => {
         let list = [...sessionList];
-        if (showSplitsOnly) list = list.filter(s => s.type === 'split');
 
         switch (listSortMode) {
             case 'newest': list.sort((a, b) => b.start_time.localeCompare(a.start_time)); break;
@@ -78,7 +83,7 @@ export default function SessionAnalytics({ refreshKey }) {
             default: break;
         }
         return list;
-    }, [sessionList, showSplitsOnly, listSortMode]);
+    }, [sessionList, listSortMode]);
 
     const loadDetail = (index) => {
         setCurrentIndex(index);
@@ -218,19 +223,24 @@ export default function SessionAnalytics({ refreshKey }) {
 
     if (viewMode === 'list') {
         return (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden pt-1 px-1">
                 <div className="flex items-center justify-between mb-4 shrink-0 pr-1">
                     <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-bold">Session History</h2>
-                        <button
-                            onClick={() => setShowSplitsOnly(!showSplitsOnly)}
-                            className={`p-1.5 rounded-lg transition-all ${showSplitsOnly ? 'bg-orange-950/40 text-orange-400 ring-1 ring-orange-500/50' : 'bg-gray-800 text-gray-400 hover:text-white'}`}
-                            title="Filter Splits (Wins only)"
-                        >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
+                        <h2 className="text-lg font-bold text-gray-100">History</h2>
+                        <div className="flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700/50 p-0.5">
+                            <button
+                                onClick={() => { setHistoryMode('session'); saveConfig({ history_mode: 'session' }); }}
+                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${historyMode === 'session' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                Sessions
+                            </button>
+                            <button
+                                onClick={() => { setHistoryMode('split'); saveConfig({ history_mode: 'split' }); }}
+                                className={`px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-tight transition-all ${historyMode === 'split' ? 'bg-orange-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                Splits
+                            </button>
+                        </div>
                         <button
                             onClick={() => {
                                 const next = !showIndexChart;
@@ -448,7 +458,7 @@ export default function SessionAnalytics({ refreshKey }) {
     }
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden pt-1 px-1">
             <div className="flex items-center gap-3 mb-3 shrink-0">
                 <button onClick={() => setViewMode('list')}
                     className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors flex items-center gap-1.5">
@@ -458,14 +468,18 @@ export default function SessionAnalytics({ refreshKey }) {
                 <div className="flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700/50">
                     <button onClick={() => currentIndex > 0 && loadDetail(currentIndex - 1)}
                         disabled={currentIndex <= 0}
-                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg">
-                        ◀
+                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg flex items-center justify-center">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
                     <div className="w-[1px] bg-gray-700/50" />
                     <button onClick={() => currentIndex < filteredList.length - 1 && loadDetail(currentIndex + 1)}
                         disabled={currentIndex >= filteredList.length - 1}
-                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg">
-                        ▶
+                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg flex items-center justify-center">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
 
@@ -499,7 +513,7 @@ export default function SessionAnalytics({ refreshKey }) {
                     color="text-yellow-400" />
             </div>
 
-            <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0">
+            <div className="flex items-center gap-2 mb-2 flex-wrap shrink-0 pr-1">
                 <div className="flex bg-gray-800 rounded-lg overflow-hidden text-sm border border-gray-700/50">
                     <button onClick={() => setChartMode('expl')}
                         className={`px-3 py-1.5 transition-colors ${chartMode === 'expl' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>
@@ -508,25 +522,42 @@ export default function SessionAnalytics({ refreshKey }) {
                 </div>
                 <button onClick={() => setShowTrend(v => !v)}
                     title="Toggle Trend Line"
-                    className={`text-sm px-2.5 py-1.5 rounded transition-all border ${showTrend ? 'bg-cyan-600 border-cyan-400 text-white shadow-lg shadow-cyan-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>📈</button>
-                <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5">
-                    <span className="text-[10px] text-gray-500 uppercase font-bold">Group</span>
+                    className={`p-2 rounded transition-all border ${showTrend ? 'bg-cyan-600 border-cyan-400 text-white shadow-lg shadow-cyan-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </button>
+                <div className="flex items-center gap-1.5 bg-gray-800 border border-gray-700/50 rounded px-2 py-1.5 leading-none">
+                    <span className="text-[9px] text-gray-500 uppercase font-black">Group</span>
                     <input type="number" min="1" value={groupSize}
                         onChange={e => setGroupSize(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-10 bg-transparent border-none text-xs text-white text-center focus:outline-none" />
+                        className="w-8 bg-transparent border-none text-[11px] text-white text-center focus:outline-none font-black" />
                 </div>
 
                 <div className="flex-1" />
 
                 <button onClick={() => setHideFails(v => !v)}
-                    title="Toggle Fails"
-                    className={`text-sm px-2.5 py-1.5 rounded transition-all border ${hideFails ? 'bg-red-700 border-red-500 text-white shadow-lg shadow-red-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
-                    {hideFails ? '🔍' : '👁️'}
+                    title={hideFails ? "Showing Wins Only" : "Showing All Runs"}
+                    className={`p-2 rounded transition-all border ${hideFails ? 'bg-red-700 border-red-500 text-white shadow-lg shadow-red-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
+                    {hideFails ? (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.04m5.882-5.903A9.972 9.972 0 0112 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-1.124 0-2.193-.182-3.192-.518M11.332 11.332L15 15M9 15L12.668 11.332" />
+                        </svg>
+                    )}
                 </button>
                 <button onClick={() => !hideFails && setHideWL(v => !v)}
                     disabled={hideFails}
-                    className={`text-sm px-2.5 py-1.5 rounded transition-all border ${hideWL ? 'bg-orange-700 border-orange-500 text-white shadow-lg shadow-orange-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'} ${hideFails ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
-                    title={hideFails ? "Redundant when Hide Fails is active" : "Hide World Loads"}>🌍</button>
+                    className={`p-2 rounded transition-all border ${hideWL ? 'bg-orange-700 border-orange-500 text-white shadow-lg shadow-orange-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'} ${hideFails ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
+                    title={hideFails ? "Redundant when Hide Fails is active" : "Hide World Loads"}>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                </button>
 
                 <select value={sortMode} onChange={e => setSortMode(e.target.value)}
                     className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-gray-500 hover:border-gray-600 transition-colors">
@@ -546,7 +577,10 @@ export default function SessionAnalytics({ refreshKey }) {
                     }}
                     title="Toggle Explosive Distribution Chart"
                     className={`text-[11px] font-bold px-2.5 py-1.5 rounded transition-all border ${showDist ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-900/40' : 'bg-gray-800 border-gray-700/50 text-gray-500 hover:border-gray-600'}`}>
-                    📊 EXPL DIST
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    EXPL DIST
                 </button>
             </div>
 

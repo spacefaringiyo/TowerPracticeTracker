@@ -160,7 +160,7 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
 
     if (viewMode === 'grid') {
         return (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden pt-1 px-1">
                 <div className="flex items-center justify-between mb-4 shrink-0 pr-1">
                     <div className="flex items-center gap-2">
                         <h2 className="text-lg font-bold text-gray-100 uppercase tracking-tight">Tower Analytics</h2>
@@ -279,7 +279,7 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
     const nextTower = currentIndex < sortedStats.length - 1 ? sortedStats[currentIndex + 1][0] : null;
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden pt-1 px-1">
             {/* Header */}
             <div className="flex items-center gap-3 mb-4 shrink-0 pr-1">
                 <button onClick={() => setViewMode('grid')}
@@ -291,13 +291,17 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
                     <button onClick={() => prevTower && showDetail(prevTower)}
                         disabled={!prevTower}
                         className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg">
-                        ◀
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
                     <div className="w-[1px] bg-gray-700/50" />
                     <button onClick={() => nextTower && showDetail(nextTower)}
                         disabled={!nextTower}
                         className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg">
-                        ▶
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
 
@@ -324,7 +328,7 @@ export default function TowerAnalytics({ refreshKey, detailRequest }) {
             <div className="flex flex-col gap-2 mb-3 shrink-0">
                 {/* Main Trend Chart */}
                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap pr-1">
                         <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] font-bold uppercase border border-gray-700/50">
                             <button onClick={() => setChartMode('expl')}
                                 className={`px-3 py-1.5 transition-colors ${chartMode === 'expl' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>

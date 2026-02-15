@@ -196,7 +196,7 @@ export default function HeightAnalytics({ refreshKey }) {
 
     if (viewMode === 'list') {
         return (
-            <div className="flex flex-col h-full overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden pt-1 px-1">
                 <div className="flex items-center justify-between mb-4 shrink-0 pr-1">
                     <div className="flex items-center gap-2">
                         <h2 className="text-lg font-bold text-gray-100">Heights Overview</h2>
@@ -320,7 +320,7 @@ export default function HeightAnalytics({ refreshKey }) {
     const avgExpl = successes.length > 0 ? successes.reduce((s, r) => s + r[C.total_explosives], 0) / successes.length : 0;
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden pt-1 px-1">
             {/* Header */}
             <div className="flex items-center gap-3 mb-4 shrink-0 pr-1">
                 <button onClick={() => setViewMode('list')}
@@ -328,17 +328,21 @@ export default function HeightAnalytics({ refreshKey }) {
                     <span>←</span> Index
                 </button>
 
-                <div className="flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700/50 shadow-sm">
+                <div className="flex bg-gray-800 rounded-lg overflow-hidden border border-gray-700/50 shadow-sm transition-all hover:border-gray-600">
                     <button onClick={() => prevHeight !== null && showDetail(prevHeight)}
                         disabled={prevHeight === null}
-                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg">
-                        ◀
+                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg flex items-center justify-center">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                        </svg>
                     </button>
                     <div className="w-[1px] bg-gray-700/50" />
                     <button onClick={() => nextHeight !== null && showDetail(nextHeight)}
                         disabled={nextHeight === null}
-                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg">
-                        ▶
+                        className="px-4 py-1.5 hover:bg-gray-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors text-lg flex items-center justify-center">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
                     </button>
                 </div>
 
@@ -366,7 +370,7 @@ export default function HeightAnalytics({ refreshKey }) {
 
             {/* Charts Section */}
             <div className="flex flex-col gap-2 mb-3 shrink-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap pr-1">
                     <div className="flex bg-gray-800 rounded-lg overflow-hidden text-[10px] font-bold uppercase border border-gray-700/50">
                         <button onClick={() => setChartMode('expl')}
                             className={`px-3 py-1.5 transition-colors ${chartMode === 'expl' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}>Expl</button>

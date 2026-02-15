@@ -220,3 +220,86 @@ export function getRunsByHeight(height) {
         [height]
     );
 }
+
+export function getCalendarStats(year, month, gapLimitMins = 30) {
+    const db = getDb();
+    if (!db) return [];
+
+    // month is 0-indexed in JS (0-11), strftime('%m') is '01'-'12'
+    const monthStr = String(month + 1).padStart(2, '0');
+    const yearStr = String(year);
+
+    const result = safeQuery(`
+        SELECT timestamp, time_sec, total_explosives, is_success
+        FROM attempts
+        WHERE timestamp LIKE ?
+    `, [`${yearStr}-${monthStr}%`]);
+
+    const days = {};
+    result.forEach(row => {
+        const date = row[0].split(' ')[0]; // YYYY-MM-DD
+        if (!days[date]) {
+            days[date] = { date, runs: [], successRuns: [] };
+        }
+        days[date].runs.push({ timestamp: row[0], time_sec: row[1] });
+        if (row[3] === 1) {
+            days[date].successRuns.push(row[2]);
+        }
+    });
+
+    return Object.values(days).map(day => {
+        const { durationSec, playTimeSec } = calculateSessionDuration(day.runs, gapLimitMins);
+        const avgExpl = day.successRuns.length > 0
+            ? day.successRuns.reduce((a, b) => a + b, 0) / day.successRuns.length
+            : null;
+
+        return {
+            date: day.date,
+            count: day.runs.length,
+            avg_expl: avgExpl,
+            duration_sec: durationSec,
+            play_time_sec: playTimeSec
+        };
+    });
+}
+
+export function getDailyRuns(date) {
+    return safeQuery(
+        "SELECT * FROM attempts WHERE timestamp LIKE ? ORDER BY timestamp ASC",
+        [`${date}%`]
+    );
+}
+
+export function getMaxDailyRuns() {
+    const db = getDb();
+    if (!db) return 0;
+    // We look at the top run count among the last 30 active days
+    const result = db.exec(`
+        SELECT MAX(c) FROM (
+            SELECT COUNT(*) as c 
+            FROM attempts 
+            GROUP BY SUBSTR(timestamp, 1, 10) 
+            ORDER BY MIN(timestamp) DESC 
+            LIMIT 30
+        )
+    `);
+    if (result.length === 0 || result[0].values.length === 0) return 0;
+    return result[0].values[0][0] || 0;
+}
+
+export function getNeighboringActiveDate(currentDate, direction) {
+    const operator = direction > 0 ? '>' : '<';
+    const order = direction > 0 ? 'ASC' : 'DESC';
+
+    const result = safeQuery(`
+        SELECT SUBSTR(timestamp, 1, 10) as d
+        FROM attempts
+        WHERE SUBSTR(timestamp, 1, 10) ${operator} ?
+        GROUP BY d
+        ORDER BY d ${order}
+        LIMIT 1
+    `, [currentDate]);
+
+    if (result.length === 0) return null;
+    return result[0][0];
+}
