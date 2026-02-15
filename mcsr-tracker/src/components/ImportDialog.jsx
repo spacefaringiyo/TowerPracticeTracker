@@ -242,55 +242,55 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
 
     return (
         <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-6"
             onClick={onClose}
             style={{ zoom: 100 / uiScale }}
         >
-            <div className="bg-gray-900 border border-gray-800 w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] rounded-2xl"
+            <div className="bg-gray-900 border border-gray-800 w-full max-w-5xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] rounded-2xl"
                 onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div className="bg-gray-800/50 p-6 border-b border-gray-800">
-                    <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                <div className="bg-gray-800/50 p-8 border-b border-gray-800">
+                    <h2 className="text-3xl font-black text-white flex items-center gap-3">
                         <span className="text-blue-500">📥</span> IMPORT DATA
                     </h2>
-                    <p className="text-sm text-gray-400 mt-1 font-medium">Add Minecraft log files or folders to track your practice history.</p>
+                    <p className="text-base text-gray-400 mt-2 font-medium">Add Minecraft log files or folders to track your practice history.</p>
                 </div>
 
-                <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+                <div className="p-8 overflow-y-auto custom-scrollbar flex-1">
                     {/* 3-Step Guide */}
-                    <div className="grid grid-cols-3 gap-3 mb-6">
-                        <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-700/30 text-center">
-                            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-black mx-auto mb-2">1</div>
-                            <div className="text-xs font-bold text-gray-300 leading-tight tracking-tight">COPY LOG PATH</div>
+                    <div className="grid grid-cols-3 gap-4 mb-8">
+                        <div className="bg-gray-800/30 p-5 rounded-xl border border-gray-700/30 text-center">
+                            <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-black mx-auto mb-3">1</div>
+                            <div className="text-sm font-bold text-gray-300 leading-tight tracking-tight">COPY LOG PATH</div>
                         </div>
-                        <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-700/30 text-center">
-                            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-black mx-auto mb-2">2</div>
-                            <div className="text-xs font-bold text-gray-300 leading-tight tracking-tight">OPEN FOLDER</div>
+                        <div className="bg-gray-800/30 p-5 rounded-xl border border-gray-700/30 text-center">
+                            <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-black mx-auto mb-3">2</div>
+                            <div className="text-sm font-bold text-gray-300 leading-tight tracking-tight">OPEN FOLDER</div>
                         </div>
-                        <div className="bg-gray-800/30 p-4 rounded-xl border border-gray-700/30 text-center">
-                            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-black mx-auto mb-2">3</div>
-                            <div className="text-xs font-bold text-gray-300 leading-tight tracking-tight">DROP HERE</div>
+                        <div className="bg-gray-800/30 p-5 rounded-xl border border-gray-700/30 text-center">
+                            <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-black mx-auto mb-3">3</div>
+                            <div className="text-sm font-bold text-gray-300 leading-tight tracking-tight">DROP HERE</div>
                         </div>
                     </div>
 
                     {/* Path Shortcuts */}
-                    <div className="mb-6">
-                        <label className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2 block">Quick Path Shortcuts</label>
-                        <div className="grid grid-cols-1 gap-2">
+                    <div className="mb-8">
+                        <label className="text-sm font-black text-gray-500 uppercase tracking-widest mb-3 block">Quick Path Shortcuts</label>
+                        <div className="grid grid-cols-2 gap-4">
                             {/* Pinned Custom Path */}
                             {config.custom_import_path && (
                                 <button
                                     onClick={() => copyPath(config.custom_import_path)}
-                                    className="w-full flex items-center justify-between gap-3 bg-blue-950/20 hover:bg-blue-900/30 border border-blue-500/30 hover:border-blue-500 rounded-lg px-4 py-3 transition-all group scale-[1.01] mb-1">
+                                    className="w-full flex items-center justify-between gap-4 bg-blue-950/20 hover:bg-blue-900/30 border border-blue-500/30 hover:border-blue-500 rounded-xl px-5 py-4 transition-all group scale-[1.01] mb-1">
                                     <div className="flex flex-col items-start min-w-0">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="text-xs font-black text-blue-400">PINNED PATH</span>
-                                            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" />
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-black text-blue-400">PINNED PATH</span>
+                                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
                                         </div>
-                                        <span className="text-xs font-mono text-gray-400 truncate w-full">{config.custom_import_path}</span>
+                                        <span className="text-sm font-mono text-gray-400 truncate w-full mt-1.5">{config.custom_import_path}</span>
                                     </div>
-                                    <span className={`text-xs font-bold px-2 py-1 rounded transition-all ${copiedPath === config.custom_import_path ? 'bg-green-500 text-white opacity-100' : 'text-blue-500 bg-blue-500/10 opacity-0 group-hover:opacity-100'}`}>
+                                    <span className={`text-sm font-bold px-3 py-1.5 rounded-lg transition-all ${copiedPath === config.custom_import_path ? 'bg-green-500 text-white opacity-100' : 'text-blue-500 bg-blue-500/10 opacity-0 group-hover:opacity-100'}`}>
                                         {copiedPath === config.custom_import_path ? 'COPIED!' : 'COPY'}
                                     </span>
                                 </button>
@@ -299,12 +299,12 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
                             {COMMON_LOG_PATHS.map(item => (
                                 <button key={item.name}
                                     onClick={() => copyPath(item.path)}
-                                    className="w-full flex items-center justify-between gap-3 bg-gray-950/50 hover:bg-blue-900/10 border border-gray-800 hover:border-blue-500/30 rounded-lg px-4 py-3 transition-all group">
+                                    className="w-full flex items-center justify-between gap-4 bg-gray-950/50 hover:bg-blue-900/10 border border-gray-800 hover:border-blue-500/30 rounded-xl px-5 py-4 transition-all group">
                                     <div className="flex flex-col items-start min-w-0">
-                                        <span className="text-xs font-black text-gray-400 group-hover:text-blue-400">{item.name}</span>
-                                        <span className="text-xs font-mono text-gray-600 truncate w-full">{item.path}</span>
+                                        <span className="text-sm font-black text-gray-400 group-hover:text-blue-400">{item.name}</span>
+                                        <span className="text-sm font-mono text-gray-600 truncate w-full mt-1">{item.path}</span>
                                     </div>
-                                    <span className={`text-xs font-bold px-2 py-1 rounded transition-all ${copiedPath === item.path ? 'bg-green-500 text-white opacity-100' : 'text-blue-500 bg-blue-500/10 opacity-0 group-hover:opacity-100'
+                                    <span className={`text-sm font-bold px-3 py-1.5 rounded-lg transition-all ${copiedPath === item.path ? 'bg-green-500 text-white opacity-100' : 'text-blue-500 bg-blue-500/10 opacity-0 group-hover:opacity-100'
                                         }`}>
                                         {copiedPath === item.path ? 'COPIED!' : 'COPY'}
                                     </span>
@@ -313,17 +313,17 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
                         </div>
 
                         {/* Pin Input */}
-                        <div className="mt-3 flex gap-2">
+                        <div className="mt-4 flex gap-3">
                             <input
                                 type="text"
                                 value={pinInput}
                                 onChange={(e) => setPinInput(e.target.value)}
                                 placeholder="Paste your custom log folder path here..."
-                                className="flex-1 bg-gray-950 border border-gray-800 rounded-lg px-4 py-2.5 text-xs font-mono text-gray-300 placeholder:text-gray-600 focus:border-blue-500/50 outline-none transition-all"
+                                className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-5 py-3 text-sm font-mono text-gray-300 placeholder:text-gray-600 focus:border-blue-500/50 outline-none transition-all"
                             />
                             <button
                                 onClick={handlePinCustomPath}
-                                className="bg-gray-800 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg text-xs font-black tracking-widest uppercase transition-all whitespace-nowrap"
+                                className="bg-gray-800 hover:bg-blue-600 text-white px-5 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all whitespace-nowrap"
                             >
                                 PIN PATH
                             </button>
@@ -337,31 +337,31 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
                         onDragLeave={handleDrag}
                         onDrop={handleDrop}
                         onClick={() => !processing && triggerMainImport()}
-                        className={`relative group h-48 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer overflow-hidden ${dragActive ? 'border-blue-500 bg-blue-500/10' :
+                        className={`relative group h-64 border-3 border-dashed rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer overflow-hidden ${dragActive ? 'border-blue-500 bg-blue-500/10' :
                             processing ? 'border-gray-700 bg-gray-900/50 cursor-wait' :
-                                'border-gray-800 hover:border-gray-600 bg-gray-950/50'
+                                'border-gray-700 hover:border-gray-500 bg-gray-950/30 hover:bg-gray-900/50'
                             }`}
                     >
                         {processing ? (
-                            <div className="w-full px-12 flex flex-col items-center">
-                                <div className="text-2xl mb-3">⚡</div>
-                                <div className="w-full bg-gray-800 h-3 rounded-full overflow-hidden mb-3">
+                            <div className="w-full px-16 flex flex-col items-center">
+                                <div className="text-3xl mb-4">⚡</div>
+                                <div className="w-full bg-gray-800 h-4 rounded-full overflow-hidden mb-4">
                                     <div className="bg-blue-500 h-full transition-all duration-300" style={{ width: `${progress}%` }} />
                                 </div>
-                                <div className="text-sm font-black text-white tracking-widest uppercase">{progress}%</div>
-                                <div className="text-xs font-bold text-gray-400 mt-2 truncate max-w-full italic">{status}</div>
+                                <div className="text-lg font-black text-white tracking-widest uppercase">{progress}%</div>
+                                <div className="text-sm font-bold text-gray-400 mt-2 truncate max-w-full italic">{status}</div>
                             </div>
                         ) : (
                             <>
-                                <div className={`text-4xl mb-3 transition-transform ${dragActive ? 'scale-125' : 'group-hover:scale-110'}`}>
+                                <div className={`text-6xl mb-6 transition-transform duration-300 ${dragActive ? 'scale-125' : 'group-hover:scale-110'}`}>
                                     {dragActive ? '📥' : '📂'}
                                 </div>
-                                <div className="text-sm font-black text-white tracking-widest uppercase text-center px-4">
+                                <div className="text-xl font-black text-white tracking-widest uppercase text-center px-8 mb-2">
                                     {dragActive ? 'Release to Start' : 'Drop Logs Folder or Select Files'}
                                 </div>
-                                <div className="text-xs font-bold text-gray-500 mt-2 flex flex-col items-center gap-1">
+                                <div className="text-sm font-medium text-gray-400 flex flex-col items-center gap-1.5">
                                     <span>Supports multiple files and folders</span>
-                                    <span className="text-blue-400/80 italic">Tip: Ctrl+A inside your folder to select all!</span>
+                                    <span className="text-blue-400 font-bold">Tip: Ctrl+A inside your folder to select all!</span>
                                 </div>
                             </>
                         )}
@@ -377,36 +377,44 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
                         />
                     </div>
 
+                    {/* Security Note */}
+                    <div className="mt-4 flex justify-center">
+                        <div className="flex items-center gap-2 text-gray-500 bg-gray-900/50 border border-gray-800 px-4 py-2 rounded-full">
+                            <span className="text-emerald-500 opacity-80">🔒</span>
+                            <span className="text-xs font-bold uppercase tracking-wide">Your data is processed locally and stays safe on your device.</span>
+                        </div>
+                    </div>
+
                     {/* Persistent Status Message (outside busy state) */}
                     {!processing && status && (
-                        <div className={`mt-4 p-3 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${status.includes('error') ? 'bg-red-900/20 border border-red-500/30 text-red-200' : 'bg-emerald-900/20 border border-emerald-500/30 text-emerald-200'}`}>
-                            <div className="text-lg">{status.includes('error') ? '⚠️' : '✅'}</div>
-                            <div className="text-xs font-bold">{status}</div>
+                        <div className={`mt-6 p-4 rounded-xl flex items-center gap-4 animate-in fade-in slide-in-from-top-2 shadow-lg ${status.includes('error') ? 'bg-red-900/20 border border-red-500/30 text-red-200' : 'bg-emerald-900/20 border border-emerald-500/30 text-emerald-100'}`}>
+                            <div className="text-2xl">{status.includes('error') ? '⚠️' : '✅'}</div>
+                            <div className="text-lg font-bold">{status}</div>
                         </div>
                     )}
 
                     {/* Stats Summary */}
                     {(stats.new > 0 || stats.dupe > 0) && !processing && (
-                        <div className="mt-6 p-4 rounded-xl bg-blue-900/10 border border-blue-500/20 animate-in fade-in zoom-in-95 duration-300">
+                        <div className="mt-8 p-6 rounded-2xl bg-blue-900/10 border border-blue-500/20 animate-in fade-in zoom-in-95 duration-300">
                             <div className="flex justify-around items-center">
                                 <div className="text-center">
-                                    <div className="text-xs font-black text-gray-500 uppercase mb-1">Runs in Files</div>
-                                    <div className="text-2xl font-black text-white tracking-tight">{stats.runsInBatch}</div>
+                                    <div className="text-xs font-black text-gray-500 uppercase mb-2">Runs in Files</div>
+                                    <div className="text-3xl font-black text-white tracking-tight">{stats.runsInBatch}</div>
                                 </div>
-                                <div className="w-[1px] h-10 bg-gray-800" />
+                                <div className="w-[1px] h-12 bg-gray-700" />
                                 <div className="text-center">
-                                    <div className="text-xs font-black text-gray-500 uppercase mb-1">New Imports</div>
-                                    <div className="text-2xl font-black text-blue-400 tracking-tight">{stats.new}</div>
+                                    <div className="text-xs font-black text-gray-500 uppercase mb-2">New Imports</div>
+                                    <div className="text-3xl font-black text-blue-400 tracking-tight">{stats.new}</div>
                                 </div>
-                                <div className="w-[1px] h-10 bg-gray-800" />
+                                <div className="w-[1px] h-12 bg-gray-700" />
                                 <div className="text-center">
-                                    <div className="text-xs font-black text-gray-500 uppercase mb-1">Already Logged</div>
-                                    <div className="text-2xl font-black text-gray-400 tracking-tight">{stats.dupe}</div>
+                                    <div className="text-xs font-black text-gray-500 uppercase mb-2">Already Logged</div>
+                                    <div className="text-3xl font-black text-gray-500 tracking-tight">{stats.dupe}</div>
                                 </div>
-                                <div className="w-[1px] h-10 bg-gray-800" />
+                                <div className="w-[1px] h-12 bg-gray-700" />
                                 <div className="text-center">
-                                    <div className="text-xs font-black text-gray-500 uppercase mb-1">Total Database</div>
-                                    <div className="text-2xl font-black text-white tracking-tight">{stats.total}</div>
+                                    <div className="text-xs font-black text-gray-500 uppercase mb-2">Total Database</div>
+                                    <div className="text-3xl font-black text-white tracking-tight">{stats.total}</div>
                                 </div>
                             </div>
                         </div>
@@ -415,13 +423,13 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
 
                 {/* Footer Controls */}
                 <div className="bg-gray-950 p-6 border-t border-gray-800 flex items-center justify-between">
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                         <button onClick={handleExport}
-                            className="text-xs font-black text-gray-500 hover:text-white uppercase tracking-widest px-3 py-2 transition-colors">
+                            className="text-xs font-black text-gray-500 hover:text-white uppercase tracking-widest px-4 py-3 bg-gray-900 hover:bg-gray-800 rounded-lg transition-all">
                             Export Data
                         </button>
                         <button onClick={triggerDataImport}
-                            className="text-xs font-black text-gray-500 hover:text-white uppercase tracking-widest px-3 py-2 transition-colors">
+                            className="text-xs font-black text-gray-500 hover:text-white uppercase tracking-widest px-4 py-3 bg-gray-900 hover:bg-gray-800 rounded-lg transition-all">
                             Import Data
                         </button>
                         <input
@@ -434,14 +442,14 @@ export default function ImportDialog({ onClose, uiScale = 100 }) {
                             onChange={handleDataImport}
                         />
                         <button onClick={handleClear}
-                            className="text-xs font-black text-red-900 hover:text-red-500 uppercase tracking-widest px-3 py-2 transition-colors">
+                            className="text-xs font-black text-red-900 hover:text-red-500 uppercase tracking-widest px-4 py-3 hover:bg-red-950/20 rounded-lg transition-all">
                             Clear Data
                         </button>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <button onClick={onClose}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-lg text-sm font-black tracking-widest uppercase transition-all shadow-lg active:scale-95">
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-3 rounded-xl text-base font-black tracking-widest uppercase transition-all shadow-xl shadow-blue-900/20 active:scale-95 hover:scale-[1.02]">
                             DONE
                         </button>
                     </div>

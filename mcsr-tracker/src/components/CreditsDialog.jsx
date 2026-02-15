@@ -8,7 +8,7 @@ export default function CreditsDialog({ onClose }) {
                 <h2 className="text-xl font-bold mb-5">Credits</h2>
                 <div className="space-y-3 mb-5">
                     <p className="text-base">
-                        Made for &amp; Advised by <span className="font-bold">SolandMoon</span>
+                        Made for &amp; Advised by <a href="https://x.com/PleonexiaLost" target="_blank" rel="noopener noreferrer" className="font-bold text-blue-500 hover:text-blue-400 transition-colors">SolandMoon</a>
                     </p>
                     <p className="text-base">
                         Made by{' '}
